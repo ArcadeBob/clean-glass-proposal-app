@@ -1,0 +1,11 @@
+# Task ID: 7
+# Title: Risk Assessment System
+# Status: pending
+# Dependencies: 5
+# Priority: high
+# Description: Build 15+ factor scoring engine with weighted calculations and visualizations
+# Details:
+Implement comprehensive risk scoring system covering schedule, technical, site, financial, and seasonal factors. Each factor has configurable weights and scoring algorithms. Include risk visualization components and automated contingency recommendations based on total risk score.
+
+# Test Strategy:
+Test risk calculations with known scenarios, validate factor weights, verify contingency logic

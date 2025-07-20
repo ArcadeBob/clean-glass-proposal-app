@@ -1,0 +1,11 @@
+# Task ID: 6
+# Title: Phase 2: Risk Assessment & Intelligence
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement advanced risk scoring, market analysis, and intelligent contingency recommendations
+# Details:
+Build sophisticated risk assessment system with 15+ weighted factors, market analysis capabilities, and intelligent pricing recommendations. This phase adds the intelligence that differentiates the system from simple calculators.
+
+# Test Strategy:
+Validate risk scores against expert assessment, verify market analysis accuracy, test contingency recommendations

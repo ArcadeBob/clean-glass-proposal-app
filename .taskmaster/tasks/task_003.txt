@@ -1,0 +1,11 @@
+# Task ID: 3
+# Title: Basic Wizard Flow Implementation
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Create 4-step proposal wizard with navigation, validation, and state management
+# Details:
+Implement the core proposal wizard with 4 steps: Project Details, Measurements, Options, and Review. Include form navigation, basic validation for required fields, Zustand state management, and localStorage persistence between sessions.
+
+# Test Strategy:
+Test wizard navigation, form validation, state persistence, and data retention

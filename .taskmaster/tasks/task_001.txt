@@ -1,0 +1,11 @@
+# Task ID: 1
+# Title: Phase 1: Core MVP Setup
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Establish foundation with Next.js 15, TypeScript, database, auth, and basic wizard flow
+# Details:
+Set up the core infrastructure for the proposal generator including project initialization, database setup, authentication, and a basic 4-step wizard flow with simple calculations. This phase focuses on getting a working MVP that can generate basic proposals.
+
+# Test Strategy:
+Verify project setup, test basic wizard flow, ensure calculations match manual process, validate PDF generation

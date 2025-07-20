@@ -1,0 +1,1791 @@
+# Clean Glass Installation Proposal Generator - Product Requirements Document
+
+> **Document Version:** 1.0.0  
+> **Last Updated:** 2024-01-20  
+> **Related Modules:** [wizard-components.md, calculation-engine.md, risk-assessment.md, proposal-generation.md]  
+> **Target Framework:** Next.js 15.0.3 + TypeScript 5.3.3  
+> **Database:** PostgreSQL 16 + Prisma 5.8.0  
+> **Taskmaster Complexity:** High (50+ components, 5 implementation phases)  
+> **Estimated LOC:** 15,000-20,000  
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [User Stories & Requirements](#2-user-stories--requirements)
+3. [Technical Architecture](#3-technical-architecture)
+4. [Data Models & Validation](#4-data-models--validation)
+5. [Core Components](#5-core-components)
+6. [Business Logic Engine](#6-business-logic-engine)
+7. [API Specifications](#7-api-specifications)
+8. [Implementation Phases](#8-implementation-phases)
+9. [Testing Strategy](#9-testing-strategy)
+10. [Deployment & Infrastructure](#10-deployment--infrastructure)
+
+---
+
+## 1. Executive Summary
+
+### 1.1 Product Vision
+[Complexity: Low] <!-- generates: docs/vision.md -->
+
+Transform Clean Glass Installation's proposal generation from a 2-4 hour manual process to a sub-5-minute automated workflow. The system will achieve 98% calculation accuracy and target 25% higher win rates through intelligent risk assessment and competitive market positioning.
+
+**Key Business Metrics:**
+- **Current State**: 2-4 hours per proposal, 15-20% error rate, inconsistent risk assessment
+- **Target State**: <5 minutes per proposal, <2% error rate, standardized risk-based pricing
+- **ROI**: Save 200+ hours/month, reduce bid errors by 90%, increase win rate by 25%
+
+### 1.2 Core Value Propositions
+
+1. **Speed**: Generate complete proposals in <5 minutes (80% time reduction)
+2. **Accuracy**: Achieve <2% variance from final contract amounts
+3. **Intelligence**: Risk-based contingency recommendations using 15+ weighted factors
+4. **Professionalism**: Branded, consistent proposals with dynamic content
+5. **Analytics**: Track win rates and optimize pricing strategies
+
+### 1.3 User Personas
+
+#### Primary: Estimator/Project Manager
+- **Daily Tasks**: Create 3-5 proposals, respond to bid requests, manage deadlines
+- **Pain Points**: Manual calculations, inconsistent formatting, time pressure
+- **Success Criteria**: Fast accurate proposals, reduced rework, improved win rate
+
+#### Secondary: Operations Manager
+- **Daily Tasks**: Review pricing strategies, manage risk exposure, track performance
+- **Pain Points**: Lack of standardization, inconsistent margins, poor visibility
+- **Success Criteria**: Standardized processes, risk mitigation, margin protection
+
+---
+
+## 2. User Stories & Requirements
+
+### 2.1 Epic: Proposal Generation Workflow
+[Complexity: High] <!-- generates: src/features/proposal-workflow/README.md -->
+
+#### Story 1: Rapid Proposal Creation
+**As an** estimator under time pressure  
+**I want** a guided wizard that validates my inputs in real-time  
+**So that** I can create accurate proposals without manual calculations
+
+**Acceptance Criteria:**
+```gherkin
+GIVEN I am creating a new commercial glazing proposal
+WHEN I complete all 4 wizard steps with valid data
+THEN the system generates a branded PDF proposal in <5 seconds
+  AND all calculations match our standard formulas within 0.1% accuracy
+  AND the proposal includes risk-adjusted contingency recommendations
+  AND I can download or email the proposal immediately
+```
+
+#### Story 2: Natural Language Input
+**As an** estimator working from RFP documents  
+**I want** to paste project descriptions and have data extracted automatically  
+**So that** I can reduce manual data entry time
+
+**Acceptance Criteria:**
+```gherkin
+GIVEN I have a text description of project scope
+WHEN I paste it into the natural language input field
+THEN the system extracts:
+  - Project address with validation
+  - System types and approximate square footage
+  - Special requirements (fire rating, blast resistance, etc.)
+  AND pre-fills the appropriate form fields
+  AND highlights extracted data for my verification
+```
+
+#### Story 3: Risk-Based Pricing
+**As an** operations manager  
+**I want** automatic risk assessment and contingency recommendations  
+**So that** we protect margins on complex projects
+
+**Acceptance Criteria:**
+```gherkin
+GIVEN a project with defined scope and conditions
+WHEN the risk assessment engine analyzes all factors
+THEN it provides:
+  - Detailed risk score (0-100) with factor breakdown
+  - Recommended contingency rate (5-15%)
+  - Specific risk mitigation suggestions
+  - Confidence score for the recommendation
+  AND allows manual override with justification required
+```
+
+### 2.2 Functional Requirements
+
+#### FR-001: Multi-Step Wizard Interface
+[Complexity: Medium] <!-- generates: src/components/wizard/index.tsx -->
+- **Description**: 4-step progressive wizard with state persistence
+- **Steps**: Project Info → Scope/Pricing → Risk Assessment → Review/Generate
+- **Validation**: Real-time field validation with specific error messages
+- **Navigation**: Previous/Next with step validation, jump to specific steps
+- **State**: Persist to localStorage with 24-hour expiration
+
+#### FR-002: Calculation Engine
+[Complexity: High] <!-- generates: src/lib/calculations/index.ts -->
+- **Description**: Industry-standard cascade calculations with full transparency
+- **Formula**: Direct Costs → Contingency → Overhead → Profit
+- **Features**: 
+  - Real-time recalculation on input change (debounced 300ms)
+  - Show calculation breakdown with reasoning
+  - Support prevailing wage vs standard wage
+  - Regional cost adjustments for CA counties
+
+#### FR-003: Risk Assessment System
+[Complexity: High] <!-- generates: src/lib/risk-assessment/index.ts -->
+- **Description**: Analyze 15+ factors to determine contingency rates
+- **Categories**: Schedule, Technical, Site, Financial, Seasonal
+- **Output**: Weighted risk score, contingency recommendation, confidence level
+- **Overrides**: Allow manual adjustment with required justification
+
+### 2.3 Non-Functional Requirements
+
+#### NFR-001: Performance
+- **Page Load**: <2 seconds initial load, <500ms subsequent navigation
+- **Calculations**: <300ms for full recalculation cycle
+- **PDF Generation**: <5 seconds for complete proposal
+- **Concurrent Users**: Support 50 simultaneous users
+
+#### NFR-002: Security
+- **Authentication**: Email/password with 2FA option
+- **Authorization**: Role-based access (Estimator, Manager, Admin)
+- **Encryption**: AES-256 for data at rest, TLS 1.3 in transit
+- **Audit**: Complete activity logging with 1-year retention
+
+#### NFR-003: Reliability
+- **Uptime**: 99.9% availability during business hours (6 AM - 8 PM PST)
+- **Data Loss**: Zero data loss with automated backups every 4 hours
+- **Recovery**: RTO <1 hour, RPO <4 hours
+
+---
+
+## 3. Technical Architecture
+
+### 3.1 System Architecture
+[Complexity: High] <!-- generates: docs/architecture/system-design.md -->
+
+```mermaid
+graph TB
+    subgraph "Frontend - Next.js 15"
+        UI[React Components]
+        WIZ[Wizard Engine]
+        CALC[Calculation Display]
+        PDF[PDF Viewer]
+    end
+    
+    subgraph "Backend Services"
+        API[API Routes]
+        CE[Calculation Engine]
+        RE[Risk Engine]
+        TE[Template Engine]
+        PE[PDF Engine]
+    end
+    
+    subgraph "Data Layer"
+        PG[(PostgreSQL)]
+        S3[AWS S3]
+        CACHE[Redis Cache]
+    end
+    
+    subgraph "External Services"
+        MAPS[Google Maps API]
+        EMAIL[SendGrid]
+        MONITOR[Sentry]
+    end
+    
+    UI --> API
+    WIZ --> API
+    API --> CE
+    API --> RE
+    API --> TE
+    TE --> PE
+    API --> PG
+    PE --> S3
+    API --> CACHE
+    API --> MAPS
+    API --> EMAIL
+    API --> MONITOR
+```
+
+### 3.2 Technology Stack
+
+```yaml
+# Frontend Stack
+frontend:
+  framework: "next@15.0.3"
+  language: "typescript@5.3.3"
+  styling: "tailwindcss@3.4.0"
+  ui_components: "@radix-ui/react@1.0.0"
+  forms: "react-hook-form@7.48.0"
+  validation: "zod@3.22.4"
+  state_management: "zustand@4.4.7"
+  data_fetching: "@tanstack/react-query@5.17.0"
+  
+# Backend Stack
+backend:
+  runtime: "node@20.11.0"
+  framework: "next@15.0.3" # API Routes
+  database: "postgresql@16"
+  orm: "prisma@5.8.0"
+  validation: "zod@3.22.4"
+  pdf_generation: "puppeteer@21.7.0"
+  caching: "redis@4.6.12"
+  
+# Infrastructure
+infrastructure:
+  hosting: "vercel"
+  database_hosting: "supabase"
+  file_storage: "aws-s3"
+  cdn: "cloudflare"
+  monitoring: "sentry@7.91.0"
+  analytics: "posthog@1.87.0"
+  
+# Development Tools
+development:
+  package_manager: "pnpm@8.14.0"
+  linting: "eslint@8.56.0"
+  formatting: "prettier@3.2.4"
+  testing: "vitest@1.2.0"
+  e2e_testing: "playwright@1.41.0"
+  git_hooks: "husky@8.0.3"
+```
+
+### 3.3 Directory Structure
+<!-- generates: .gitignore, package.json, tsconfig.json -->
+
+```
+clean-glass-proposal-generator/
+├── src/
+│   ├── app/                    # Next.js 15 App Router
+│   │   ├── (auth)/            # Auth-protected routes
+│   │   ├── api/               # API endpoints
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Landing page
+│   ├── components/
+│   │   ├── wizard/            # Multi-step form components
+│   │   ├── ui/                # Shared UI components
+│   │   ├── calculations/      # Calculation displays
+│   │   └── proposal/          # Proposal preview/generation
+│   ├── lib/
+│   │   ├── calculations/      # Business logic
+│   │   ├── risk-assessment/   # Risk scoring engine
+│   │   ├── validations/       # Zod schemas
+│   │   ├── constants/         # Business constants
+│   │   └── utils/             # Helper functions
+│   ├── hooks/                 # Custom React hooks
+│   ├── stores/                # Zustand stores
+│   ├── types/                 # TypeScript types
+│   └── styles/                # Global styles
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   └── migrations/            # Database migrations
+├── public/                    # Static assets
+├── tests/
+│   ├── unit/                  # Unit tests
+│   ├── integration/           # Integration tests
+│   └── e2e/                   # End-to-end tests
+└── docs/                      # Documentation
+```
+
+---
+
+## 4. Data Models & Validation
+
+### 4.1 Core Data Models
+[Complexity: High] <!-- generates: src/types/models.ts -->
+
+```typescript
+import { z } from 'zod';
+
+// ===== VALIDATION SCHEMAS =====
+
+// Project Information Schema
+export const ProjectInfoSchema = z.object({
+  // Basic Information
+  projectName: z.string()
+    .min(3, "Project name must be at least 3 characters")
+    .max(100, "Project name cannot exceed 100 characters")
+    .regex(/^[a-zA-Z0-9\s\-\.,]+$/, "Project name contains invalid characters"),
+    
+  projectAddress: z.string()
+    .regex(
+      /^\d+\s+[\w\s]+,\s*[\w\s]+,\s*CA\s*\d{5}$/,
+      "Address must be in format: 123 Main St, Los Angeles, CA 90001"
+    ),
+    
+  // General Contractor
+  gcCompany: z.string()
+    .min(2, "GC company name required")
+    .refine(
+      async (val) => await validateGCFromDatabase(val),
+      "General Contractor not found in database"
+    ),
+    
+  gcContact: z.object({
+    name: z.string().min(2, "Contact name required"),
+    email: z.string().email("Invalid email format"),
+    phone: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Phone format: 555-555-5555"),
+  }).optional(),
+  
+  // Project Details
+  projectType: z.enum(['private', 'municipal', 'federal'], {
+    errorMap: () => ({ message: "Select valid project type" })
+  }),
+  
+  bidDueDate: z.string()
+    .datetime({ message: "Invalid date format" })
+    .refine(
+      (date) => new Date(date) > new Date(),
+      "Bid due date must be in the future"
+    ),
+    
+  projectStartDate: z.string()
+    .datetime()
+    .optional(),
+    
+  projectDuration: z.number()
+    .int("Duration must be whole months")
+    .min(1, "Duration must be at least 1 month")
+    .max(60, "Duration cannot exceed 60 months")
+    .optional(),
+});
+
+// System Scope Schema
+export const SystemScopeSchema = z.object({
+  storefront: z.object({
+    included: z.boolean(),
+    squareFootage: z.number()
+      .min(0, "Square footage cannot be negative")
+      .max(50000, "Single system cannot exceed 50,000 SF")
+      .multipleOf(0.01, "Maximum 2 decimal places"),
+    costPerSF: z.number()
+      .min(45, "Cost/SF below minimum threshold ($45)")
+      .max(350, "Cost/SF exceeds maximum threshold ($350)"),
+    systemType: z.enum([
+      'standard_aluminum',
+      'thermally_broken',
+      'hurricane_rated',
+      'custom_steel'
+    ]).optional(),
+    description: z.string().max(500).optional(),
+  }),
+  
+  curtainWall: z.object({
+    included: z.boolean(),
+    squareFootage: z.number()
+      .min(0)
+      .max(100000, "Curtain wall cannot exceed 100,000 SF"),
+    costPerSF: z.number()
+      .min(85, "Curtain wall minimum $85/SF")
+      .max(500, "Curtain wall maximum $500/SF"),
+    systemType: z.enum([
+      'stick_built',
+      'unitized',
+      'point_supported',
+      'custom_facade'
+    ]).optional(),
+    description: z.string().max(500).optional(),
+  }),
+  
+  interiorGlazing: z.object({
+    included: z.boolean(),
+    squareFootage: z.number()
+      .min(0)
+      .max(25000, "Interior glazing cannot exceed 25,000 SF"),
+    costPerSF: z.number()
+      .min(35, "Interior glazing minimum $35/SF")
+      .max(200, "Interior glazing maximum $200/SF"),
+    systemType: z.enum([
+      'office_fronts',
+      'borrowed_lights',
+      'glass_walls',
+      'sliding_partitions'
+    ]).optional(),
+    description: z.string().max(500).optional(),
+  }),
+  
+  // Additional Items
+  doors: z.object({
+    count: z.number()
+      .int("Door count must be whole number")
+      .min(0)
+      .max(500, "Door count seems excessive, please verify"),
+    averageCost: z.number()
+      .min(800, "Door cost below minimum ($800)")
+      .max(25000, "Door cost exceeds maximum ($25,000)"),
+    types: z.array(z.enum([
+      'aluminum_entrance',
+      'all_glass',
+      'automatic_sliding',
+      'revolving',
+      'security'
+    ])).optional(),
+  }),
+  
+  operators: z.object({
+    count: z.number().int().min(0).max(100),
+    averageCost: z.number()
+      .min(2000, "Operator minimum $2,000")
+      .max(15000, "Operator maximum $15,000"),
+    types: z.array(z.enum([
+      'low_energy',
+      'full_power',
+      'icu_rated',
+      'security_interlock'
+    ])).optional(),
+  }),
+  
+  miscellaneous: z.array(z.object({
+    description: z.string()
+      .min(3, "Description too short")
+      .max(200, "Description too long"),
+    amount: z.number()
+      .min(100, "Minimum misc item $100")
+      .max(100000, "Maximum misc item $100,000"),
+    category: z.enum([
+      'louvers',
+      'sunshades',
+      'canopies',
+      'glass_railings',
+      'other'
+    ]),
+  })).max(20, "Maximum 20 miscellaneous items"),
+});
+
+// Risk Assessment Schema
+export const RiskAssessmentSchema = z.object({
+  // Schedule Risk Factors
+  scheduleRisk: z.object({
+    scheduleType: z.enum(['standard', 'accelerated', 'compressed'], {
+      errorMap: () => ({ message: "Select schedule type" })
+    }),
+    hasLiquidatedDamages: z.boolean(),
+    ldAmount: z.number().min(0).optional(),
+    hasPhasing: z.boolean(),
+    numberOfPhases: z.number().int().min(1).max(10).optional(),
+  }),
+  
+  // Technical Risk Factors
+  technicalRisk: z.object({
+    buildingHeight: z.number()
+      .int("Building height must be whole stories")
+      .min(1, "Minimum 1 story")
+      .max(100, "Maximum 100 stories"),
+    isHighRise: z.boolean(), // Auto-calculated if height > 6
+    hasCustomSystems: z.boolean(),
+    customSystemComplexity: z.enum(['low', 'medium', 'high']).optional(),
+    specialRequirements: z.object({
+      fireRated: z.boolean(),
+      hurricaneRated: z.boolean(),
+      blastResistant: z.boolean(),
+      acousticalRated: z.boolean(),
+      securityGlazing: z.boolean(),
+      electrochromic: z.boolean(),
+    }),
+  }),
+  
+  // Site Condition Risk
+  siteRisk: z.object({
+    siteAccess: z.enum(['excellent', 'good', 'restricted', 'difficult']),
+    isOccupiedBuilding: z.boolean(),
+    occupancyType: z.enum([
+      'office',
+      'retail',
+      'hospital',
+      'school',
+      'government',
+      'residential'
+    ]).optional(),
+    hasSecurityRequirements: z.boolean(),
+    securityLevel: z.enum(['standard', 'enhanced', 'maximum']).optional(),
+    workHourRestrictions: z.boolean(),
+    noiseRestrictions: z.boolean(),
+  }),
+  
+  // Financial Risk
+  financialRisk: z.object({
+    isNewGC: z.boolean(),
+    gcTier: z.enum(['tier1', 'tier2', 'tier3', 'unrated']),
+    paymentTerms: z.enum([
+      'standard_net30',
+      'net45',
+      'net60',
+      'pay_when_paid',
+      'retention_10'
+    ]),
+    hasRetention: z.boolean(),
+    retentionPercent: z.number().min(0).max(10).optional(),
+    bondingRequired: z.boolean(),
+  }),
+  
+  // Seasonal/Weather Risk
+  seasonalRisk: z.object({
+    winterWork: z.boolean(),
+    monthsOfWinterWork: z.number().int().min(0).max(12).optional(),
+    severeWeatherExposure: z.boolean(),
+    rainySeasonImpact: z.enum(['none', 'minimal', 'moderate', 'severe']),
+  }),
+});
+
+// ===== TYPE DEFINITIONS =====
+
+export type ProjectInfo = z.infer<typeof ProjectInfoSchema>;
+export type SystemScope = z.infer<typeof SystemScopeSchema>;
+export type RiskAssessment = z.infer<typeof RiskAssessmentSchema>;
+
+// Complete Proposal Data
+export interface ProposalData {
+  id: string;
+  version: number;
+  status: 'draft' | 'pending_review' | 'submitted' | 'won' | 'lost';
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+  
+  // Core Data
+  projectInfo: ProjectInfo;
+  systemScope: SystemScope;
+  riskAssessment: RiskAssessment;
+  
+  // Calculated Results
+  calculations: CalculationResults;
+  
+  // Generated Documents
+  proposalUrl?: string;
+  proposalGeneratedAt?: Date;
+}
+
+// Calculation Results Interface
+export interface CalculationResults {
+  // Direct Costs
+  directCosts: {
+    systems: number;
+    doors: number;
+    operators: number;
+    miscellaneous: number;
+    total: number;
+  };
+  
+  // Risk-Based Contingency
+  contingency: {
+    riskScore: number; // 0-100
+    riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+    rate: number; // 0.05 to 0.15
+    amount: number;
+    factors: RiskFactor[];
+  };
+  
+  // Overhead & Profit
+  overhead: {
+    rate: number; // Based on project size
+    amount: number;
+    reasoning: string;
+  };
+  
+  profit: {
+    rate: number; // Based on risk and competition
+    amount: number;
+    adjustmentFactors: string[];
+  };
+  
+  // Totals
+  totalBid: number;
+  costPerSF: number; // Total SF from all systems
+  
+  // Analysis
+  confidence: {
+    score: number; // 0-1
+    flags: string[];
+    requiresReview: boolean;
+  };
+  
+  marketAnalysis: {
+    position: 'aggressive' | 'competitive' | 'conservative' | 'premium';
+    benchmarkCostPerSF: number;
+    variance: number; // % from benchmark
+    winProbability: number; // 0-1
+    recommendations: string[];
+  };
+}
+
+// Risk Factor for Scoring
+export interface RiskFactor {
+  category: 'schedule' | 'technical' | 'site' | 'financial' | 'seasonal';
+  factor: string;
+  weight: number;
+  score: number;
+  impact: number; // weight * score
+  description: string;
+}
+```
+
+### 4.2 Database Schema
+[Complexity: Medium] <!-- generates: prisma/schema.prisma -->
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(ESTIMATOR)
+  active    Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  proposals Proposal[]
+  activities Activity[]
+}
+
+enum Role {
+  ESTIMATOR
+  MANAGER
+  ADMIN
+}
+
+// General Contractor Database
+model GeneralContractor {
+  id          String   @id @default(cuid())
+  companyName String   @unique
+  tier        GCTier   @default(UNRATED)
+  
+  // Relationship Metrics
+  totalProjects     Int      @default(0)
+  wonProjects       Int      @default(0)
+  averageProjectSize Float?
+  lastProjectDate   DateTime?
+  
+  // Contact Info
+  contacts    GCContact[]
+  
+  // Financial
+  paymentHistory    PaymentHistory[]
+  typicalPaymentTerms String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  proposals   Proposal[]
+}
+
+enum GCTier {
+  TIER1
+  TIER2
+  TIER3
+  UNRATED
+}
+
+model GCContact {
+  id        String   @id @default(cuid())
+  gcId      String
+  gc        GeneralContractor @relation(fields: [gcId], references: [id])
+  
+  name      String
+  title     String?
+  email     String
+  phone     String?
+  isPrimary Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([gcId])
+}
+
+// Proposal Management
+model Proposal {
+  id          String   @id @default(cuid())
+  version     Int      @default(1)
+  status      ProposalStatus @default(DRAFT)
+  
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  gcId        String?
+  gc          GeneralContractor? @relation(fields: [gcId], references: [id])
+  
+  // Project Data (JSONB for flexibility)
+  projectInfo Json
+  systemScope Json
+  riskAssessment Json
+  calculations Json
+  
+  // Generated Files
+  proposalUrl String?
+  proposalGeneratedAt DateTime?
+  
+  // Tracking
+  submittedAt DateTime?
+  wonLostAt   DateTime?
+  wonLostReason String?
+  actualAmount Float?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  activities  Activity[]
+  revisions   ProposalRevision[]
+  
+  @@index([userId])
+  @@index([gcId])
+  @@index([status])
+}
+
+enum ProposalStatus {
+  DRAFT
+  PENDING_REVIEW
+  SUBMITTED
+  WON
+  LOST
+}
+
+// Proposal Version History
+model ProposalRevision {
+  id          String   @id @default(cuid())
+  proposalId  String
+  proposal    Proposal @relation(fields: [proposalId], references: [id])
+  
+  version     Int
+  changedBy   String
+  changeNotes String?
+  
+  // Snapshot of data at revision
+  projectInfo Json
+  systemScope Json
+  riskAssessment Json
+  calculations Json
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([proposalId])
+}
+
+// Activity Logging
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  proposalId  String?
+  proposal    Proposal? @relation(fields: [proposalId], references: [id])
+  
+  action      String
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([proposalId])
+}
+
+// Company Constants
+model CompanyConstant {
+  id          String   @id @default(cuid())
+  category    String
+  key         String
+  value       Json
+  description String?
+  
+  effectiveDate DateTime @default(now())
+  expiryDate    DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([category, key])
+  @@index([category])
+}
+
+// Payment History for GCs
+model PaymentHistory {
+  id        String   @id @default(cuid())
+  gcId      String
+  gc        GeneralContractor @relation(fields: [gcId], references: [id])
+  
+  projectName String
+  invoiceDate DateTime
+  paymentDate DateTime?
+  daysToPayment Int?
+  amount      Float
+  
+  createdAt DateTime @default(now())
+  
+  @@index([gcId])
+}
+```
+
+---
+
+## 5. Core Components
+
+### 5.1 Wizard Components
+[Complexity: High] <!-- generates: src/components/wizard/ -->
+
+#### StepOne: Project Information
+<!-- generates: src/components/wizard/StepOne.tsx -->
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ProjectInfoSchema } from '@/types/models';
+import { useProposalStore } from '@/stores/proposalStore';
+import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
+import { GCSelector } from '@/components/ui/GCSelector';
+
+export function StepOne() {
+  const { projectInfo, setProjectInfo, nextStep } = useProposalStore();
+  
+  const form = useForm({
+    resolver: zodResolver(ProjectInfoSchema),
+    defaultValues: projectInfo,
+    mode: 'onChange', // Real-time validation
+  });
+  
+  const onSubmit = (data: ProjectInfo) => {
+    setProjectInfo(data);
+    nextStep();
+  };
+  
+  // Implementation notes:
+  // - AddressAutocomplete uses Google Maps API
+  // - GCSelector searches database with debounce
+  // - Form persists to localStorage on change
+  // - Natural language parser available via "Parse from text" button
+}
+```
+
+#### StepTwo: Scope & Pricing
+<!-- generates: src/components/wizard/StepTwo.tsx -->
+```typescript
+export function StepTwo() {
+  // Implementation notes:
+  // - Dynamic system toggle (show/hide based on "included")
+  // - Real-time cost calculations displayed
+  // - Cost/SF validation against min/max thresholds
+  // - Running total displayed in sticky footer
+  // - Historical data suggestions based on similar projects
+}
+```
+
+#### StepThree: Risk Assessment
+<!-- generates: src/components/wizard/StepThree.tsx -->
+```typescript
+export function StepThree() {
+  // Implementation notes:
+  // - Grouped risk factors by category
+  // - Real-time risk score calculation
+  // - Visual risk meter (green/yellow/red)
+  // - Conditional fields based on selections
+  // - Tooltips explaining each risk factor
+}
+```
+
+#### StepFour: Review & Generate
+<!-- generates: src/components/wizard/StepFour.tsx -->
+```typescript
+export function StepFour() {
+  // Implementation notes:
+  // - Complete proposal preview
+  // - Market analysis with charts
+  // - Package selection (good/better/best)
+  // - PDF preview before generation
+  // - One-click email delivery option
+}
+```
+
+### 5.2 Calculation Components
+[Complexity: Medium] <!-- generates: src/components/calculations/ -->
+
+```typescript
+// CalculationDisplay.tsx
+export function CalculationDisplay({ results }: { results: CalculationResults }) {
+  // Visual breakdown of calculations
+  // Animated number transitions
+  // Expandable detail sections
+  // Export to Excel option
+}
+
+// RiskScoreVisual.tsx  
+export function RiskScoreVisual({ score, factors }: RiskDisplayProps) {
+  // Circular progress indicator
+  // Factor breakdown chart
+  // Risk mitigation suggestions
+  // Historical comparison
+}
+
+// MarketAnalysis.tsx
+export function MarketAnalysis({ analysis }: MarketAnalysisProps) {
+  // Cost/SF benchmark chart
+  // Win probability gauge
+  // Competitive positioning matrix
+  // Recommendations list
+}
+```
+
+---
+
+## 6. Business Logic Engine
+
+### 6.1 Calculation Engine
+[Complexity: High] <!-- generates: src/lib/calculations/engine.ts -->
+
+```typescript
+import { SystemScope, RiskAssessment, CalculationResults } from '@/types/models';
+import { COMPANY_CONSTANTS } from '@/lib/constants';
+
+export class CalculationEngine {
+  private scope: SystemScope;
+  private risk: RiskAssessment;
+  private region: string;
+  
+  constructor(scope: SystemScope, risk: RiskAssessment, region: string) {
+    this.scope = scope;
+    this.risk = risk;
+    this.region = region;
+  }
+  
+  /**
+   * Main calculation method - cascading calculations
+   * Formula: Direct Costs → Contingency → Overhead → Profit
+   */
+  public calculate(): CalculationResults {
+    // Step 1: Calculate direct costs
+    const directCosts = this.calculateDirectCosts();
+    
+    // Step 2: Calculate risk-based contingency
+    const contingency = this.calculateContingency(directCosts.total);
+    
+    // Step 3: Apply overhead (size-based)
+    const overhead = this.calculateOverhead(
+      directCosts.total + contingency.amount
+    );
+    
+    // Step 4: Apply profit (risk-adjusted)
+    const profit = this.calculateProfit(
+      directCosts.total + contingency.amount + overhead.amount
+    );
+    
+    // Step 5: Market analysis
+    const totalBid = directCosts.total + contingency.amount + 
+                     overhead.amount + profit.amount;
+    const marketAnalysis = this.analyzeMarketPosition(totalBid);
+    
+    // Step 6: Confidence scoring
+    const confidence = this.calculateConfidence();
+    
+    return {
+      directCosts,
+      contingency,
+      overhead,
+      profit,
+      totalBid,
+      costPerSF: this.calculateCostPerSF(totalBid),
+      confidence,
+      marketAnalysis,
+    };
+  }
+  
+  private calculateDirectCosts() {
+    // Implementation notes:
+    // - Apply regional multipliers from COMPANY_CONSTANTS
+    // - Include waste factors for materials
+    // - Add installation labor based on complexity
+    // - Equipment costs based on building height
+    
+    const systems = this.calculateSystemCosts();
+    const doors = this.calculateDoorCosts();
+    const operators = this.calculateOperatorCosts();
+    const miscellaneous = this.calculateMiscCosts();
+    
+    return {
+      systems,
+      doors,
+      operators,
+      miscellaneous,
+      total: systems + doors + operators + miscellaneous,
+    };
+  }
+  
+  private calculateContingency(subtotal: number) {
+    // Risk scoring algorithm
+    const riskScore = this.calculateRiskScore();
+    
+    // Convert score to rate (5% - 15%)
+    const rate = this.riskScoreToRate(riskScore);
+    
+    return {
+      riskScore,
+      riskLevel: this.getRiskLevel(riskScore),
+      rate,
+      amount: subtotal * rate,
+      factors: this.getRiskFactors(),
+    };
+  }
+  
+  private calculateRiskScore(): number {
+    // Weighted scoring system
+    const weights = COMPANY_CONSTANTS.RISK_WEIGHTS;
+    let totalScore = 0;
+    
+    // Schedule risk (0-30 points)
+    totalScore += this.scoreScheduleRisk() * weights.schedule;
+    
+    // Technical risk (0-25 points)  
+    totalScore += this.scoreTechnicalRisk() * weights.technical;
+    
+    // Site risk (0-20 points)
+    totalScore += this.scoreSiteRisk() * weights.site;
+    
+    // Financial risk (0-15 points)
+    totalScore += this.scoreFinancialRisk() * weights.financial;
+    
+    // Seasonal risk (0-10 points)
+    totalScore += this.scoreSeasonalRisk() * weights.seasonal;
+    
+    return Math.min(100, Math.max(0, totalScore));
+  }
+}
+
+// Test scenarios for validation
+export const TEST_SCENARIOS = {
+  lowRisk: {
+    input: { /* Complete test data */ },
+    expected: {
+      totalBid: 425000,
+      contingency: 0.05,
+      confidence: 0.95,
+    },
+  },
+  highRisk: {
+    input: { /* Complete test data */ },
+    expected: {
+      totalBid: 1250000,
+      contingency: 0.12,
+      confidence: 0.75,
+    },
+  },
+};
+```
+
+### 6.2 Risk Assessment Engine
+[Complexity: High] <!-- generates: src/lib/risk-assessment/engine.ts -->
+
+```typescript
+export class RiskAssessmentEngine {
+  // Risk scoring implementation
+  // Each factor has specific weight and scoring logic
+  // Output includes detailed breakdown and recommendations
+  
+  scoreScheduleRisk(assessment: RiskAssessment['scheduleRisk']): number {
+    let score = 0;
+    
+    // Base schedule type scoring
+    switch (assessment.scheduleType) {
+      case 'standard': score += 0; break;
+      case 'accelerated': score += 10; break;
+      case 'compressed': score += 20; break;
+    }
+    
+    // Liquidated damages add significant risk
+    if (assessment.hasLiquidatedDamages) {
+      score += 15;
+      if (assessment.ldAmount && assessment.ldAmount > 5000) {
+        score += 10; // High LD amount
+      }
+    }
+    
+    // Phasing complexity
+    if (assessment.hasPhasing && assessment.numberOfPhases) {
+      score += Math.min(10, assessment.numberOfPhases * 2);
+    }
+    
+    return Math.min(30, score); // Max 30 points for schedule
+  }
+}
+```
+
+### 6.3 Company Constants
+[Complexity: Low] <!-- generates: src/lib/constants/index.ts -->
+
+```typescript
+export const COMPANY_CONSTANTS = {
+  // Regional Multipliers (base = Los Angeles County)
+  REGIONAL_MULTIPLIERS: {
+    'los-angeles': 1.00,
+    'orange': 0.98,
+    'san-diego': 0.96,
+    'riverside': 0.94,
+    'san-bernardino': 0.93,
+    'ventura': 0.99,
+    'santa-barbara': 1.02,
+    'san-francisco': 1.15,
+  },
+  
+  // Risk Weights (must total 1.0)
+  RISK_WEIGHTS: {
+    schedule: 0.30,
+    technical: 0.25,
+    site: 0.20,
+    financial: 0.15,
+    seasonal: 0.10,
+  },
+  
+  // Overhead Rates by Project Size
+  OVERHEAD_RATES: [
+    { max: 100000, rate: 0.18 },
+    { max: 250000, rate: 0.16 },
+    { max: 500000, rate: 0.14 },
+    { max: 1000000, rate: 0.12 },
+    { max: Infinity, rate: 0.10 },
+  ],
+  
+  // Profit Margins by Risk Level
+  PROFIT_MARGINS: {
+    low: { min: 0.10, target: 0.12, max: 0.15 },
+    moderate: { min: 0.12, target: 0.14, max: 0.17 },
+    high: { min: 0.14, target: 0.16, max: 0.20 },
+    critical: { min: 0.16, target: 0.18, max: 0.22 },
+  },
+  
+  // System Cost Ranges for Validation
+  COST_RANGES: {
+    storefront: { min: 45, max: 350 },
+    curtainWall: { min: 85, max: 500 },
+    interiorGlazing: { min: 35, max: 200 },
+    doors: { min: 800, max: 25000 },
+    operators: { min: 2000, max: 15000 },
+  },
+};
+```
+
+---
+
+## 7. API Specifications
+
+### 7.1 API Routes
+[Complexity: Medium] <!-- generates: src/app/api/ -->
+
+#### Proposal Endpoints
+```typescript
+// POST /api/proposals
+// Create new proposal
+interface CreateProposalRequest {
+  projectInfo: ProjectInfo;
+  systemScope: SystemScope;
+  riskAssessment: RiskAssessment;
+}
+
+interface CreateProposalResponse {
+  id: string;
+  calculations: CalculationResults;
+  proposalUrl?: string;
+}
+
+// GET /api/proposals/:id
+// Retrieve proposal details
+interface GetProposalResponse {
+  id: string;
+  version: number;
+  status: ProposalStatus;
+  projectInfo: ProjectInfo;
+  systemScope: SystemScope;
+  riskAssessment: RiskAssessment;
+  calculations: CalculationResults;
+  proposalUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// PUT /api/proposals/:id
+// Update existing proposal
+interface UpdateProposalRequest {
+  projectInfo?: Partial<ProjectInfo>;
+  systemScope?: Partial<SystemScope>;
+  riskAssessment?: Partial<RiskAssessment>;
+}
+
+// POST /api/proposals/:id/generate
+// Generate PDF proposal
+interface GenerateProposalRequest {
+  template: 'standard' | 'detailed' | 'executive';
+  package: 'good' | 'better' | 'best';
+  includeAppendix: boolean;
+}
+
+interface GenerateProposalResponse {
+  proposalUrl: string;
+  expiresAt: string;
+}
+```
+
+#### Calculation Endpoints
+```typescript
+// POST /api/calculate
+// Real-time calculation without saving
+interface CalculateRequest {
+  systemScope: SystemScope;
+  riskAssessment: RiskAssessment;
+  region: string;
+}
+
+interface CalculateResponse {
+  calculations: CalculationResults;
+  warnings?: string[];
+}
+
+// POST /api/calculate/validate
+// Validate calculation inputs
+interface ValidateCalculationRequest {
+  field: string;
+  value: any;
+  context?: Record<string, any>;
+}
+
+interface ValidateCalculationResponse {
+  valid: boolean;
+  errors?: string[];
+  suggestions?: any[];
+}
+```
+
+#### Reference Data Endpoints
+```typescript
+// GET /api/general-contractors
+// Search GC database
+interface SearchGCRequest {
+  query: string;
+  limit?: number;
+}
+
+interface SearchGCResponse {
+  results: Array<{
+    id: string;
+    companyName: string;
+    tier: GCTier;
+    projectCount: number;
+    averageProjectSize: number;
+  }>;
+}
+
+// GET /api/constants/:category
+// Retrieve company constants
+interface GetConstantsResponse {
+  category: string;
+  constants: Record<string, any>;
+  effectiveDate: string;
+}
+
+// GET /api/regions
+// Get regional data
+interface GetRegionsResponse {
+  regions: Array<{
+    code: string;
+    name: string;
+    multiplier: number;
+    laborRates: Record<string, number>;
+  }>;
+}
+```
+
+### 7.2 External Integrations
+[Complexity: Medium] <!-- generates: src/lib/integrations/ -->
+
+```typescript
+// Google Maps Integration
+export class AddressService {
+  async validateAddress(address: string): Promise<ValidationResult> {
+    // Use Google Maps Geocoding API
+    // Return standardized address or validation errors
+  }
+  
+  async getRegion(address: string): Promise<string> {
+    // Determine California county from address
+    // Used for regional pricing adjustments
+  }
+}
+
+// PDF Generation Service
+export class PDFService {
+  async generateProposal(
+    data: ProposalData,
+    template: string,
+    options: PDFOptions
+  ): Promise<string> {
+    // Use Puppeteer to generate PDF
+    // Apply dynamic template with Handlebars
+    // Upload to S3 and return signed URL
+  }
+}
+
+// Email Service
+export class EmailService {
+  async sendProposal(
+    recipient: string,
+    proposalUrl: string,
+    message?: string
+  ): Promise<void> {
+    // Use SendGrid to deliver proposal
+    // Track open and click rates
+    // Handle bounces and failures
+  }
+}
+```
+
+---
+
+## 8. Implementation Phases
+
+### 8.1 Phase 1: Core MVP (Week 1-2)
+[Complexity: Medium] <!-- Priority: MUST HAVE -->
+
+**Deliverables:**
+1. **Project Setup**
+   - Next.js 15 initialization with TypeScript
+   - Database setup (PostgreSQL + Prisma)
+   - Basic auth (NextAuth or Clerk)
+   - Deployment pipeline (Vercel)
+
+2. **Basic Wizard Flow**
+   - 4-step form with navigation
+   - Simple validation (required fields only)
+   - State management with Zustand
+   - LocalStorage persistence
+
+3. **Simple Calculations**
+   - Direct cost calculations only
+   - Fixed overhead (15%) and profit (10%)
+   - No risk assessment yet
+   - Basic PDF output (text-based)
+
+**Success Criteria:**
+- Can create a proposal in <10 minutes
+- Calculations match manual process
+- PDF generates successfully
+- Data persists between sessions
+
+### 8.2 Phase 2: Risk & Intelligence (Week 3-4)
+[Complexity: High] <!-- Priority: MUST HAVE -->
+
+**Deliverables:**
+1. **Risk Assessment System**
+   - 15+ factor scoring engine
+   - Weighted calculation algorithm
+   - Risk visualization components
+   - Contingency recommendations
+
+2. **Advanced Calculations**
+   - Regional price adjustments
+   - Size-based overhead rates
+   - Risk-adjusted profit margins
+   - Confidence scoring
+
+3. **Market Analysis**
+   - Cost/SF benchmarking
+   - Win probability calculation
+   - Package recommendations
+   - Historical comparisons
+
+**Success Criteria:**
+- Risk scores align with expert assessment
+- Contingency rates protect margins
+- Market analysis matches intuition
+- All calculations transparent
+
+### 8.3 Phase 3: Professional Polish (Week 5-6)
+[Complexity: Medium] <!-- Priority: SHOULD HAVE -->
+
+**Deliverables:**
+1. **Enhanced UI/UX**
+   - Responsive design (mobile/tablet)
+   - Real-time calculation display
+   - Natural language input parsing
+   - Improved error handling
+
+2. **Professional PDF Generation**
+   - Branded template design
+   - Dynamic content sections
+   - Charts and visualizations
+   - Multiple template options
+
+3. **Data Management**
+   - GC database integration
+   - Proposal history tracking
+   - Version management
+   - Activity logging
+
+**Success Criteria:**
+- Mobile usage possible
+- PDFs match brand standards
+- Natural language saves time
+- Complete audit trail
+
+### 8.4 Phase 4: Scale & Analytics (Week 7-8)
+[Complexity: High] <!-- Priority: NICE TO HAVE -->
+
+**Deliverables:**
+1. **Analytics Dashboard**
+   - Proposal metrics and trends
+   - Win/loss analysis
+   - User activity tracking
+   - Performance monitoring
+
+2. **Advanced Features**
+   - Bulk operations
+   - Template customization
+   - Email automation
+   - API access
+
+3. **Integration Capabilities**
+   - CRM connectivity
+   - Accounting system sync
+   - Document management
+   - Reporting tools
+
+**Success Criteria:**
+- Dashboard provides insights
+- Bulk operations save time
+- Integrations reduce double entry
+- System scales to 50+ users
+
+### 8.5 Phase 5: AI Enhancement (Future)
+[Complexity: Very High] <!-- Priority: FUTURE -->
+
+**Potential Features:**
+1. **AI-Powered Insights**
+   - Scope extraction from plans
+   - Optimal pricing suggestions
+   - Risk prediction models
+   - Automated follow-ups
+
+2. **Machine Learning**
+   - Win rate optimization
+   - Cost prediction accuracy
+   - Market trend analysis
+   - Personalized recommendations
+
+---
+
+## 9. Testing Strategy
+
+### 9.1 Unit Testing
+[Complexity: Medium] <!-- generates: tests/unit/ -->
+
+```typescript
+// Calculation Engine Tests
+describe('CalculationEngine', () => {
+  it('calculates direct costs correctly', () => {
+    const scope = mockSystemScope({ 
+      storefront: { included: true, squareFootage: 1000, costPerSF: 125 }
+    });
+    const engine = new CalculationEngine(scope, mockRisk(), 'los-angeles');
+    const result = engine.calculate();
+    
+    expect(result.directCosts.systems).toBe(125000);
+    expect(result.directCosts.total).toBeCloseTo(125000, 2);
+  });
+  
+  it('applies risk-based contingency', () => {
+    const highRisk = mockRiskAssessment({ 
+      scheduleRisk: { scheduleType: 'compressed' }
+    });
+    const engine = new CalculationEngine(mockScope(), highRisk, 'los-angeles');
+    const result = engine.calculate();
+    
+    expect(result.contingency.rate).toBeGreaterThan(0.10);
+    expect(result.contingency.riskLevel).toBe('high');
+  });
+});
+
+// Validation Tests
+describe('ProjectInfoSchema', () => {
+  it('validates address format', () => {
+    const valid = { projectAddress: '123 Main St, Los Angeles, CA 90001' };
+    const invalid = { projectAddress: 'Invalid Address Format' };
+    
+    expect(ProjectInfoSchema.parse(valid)).toBeDefined();
+    expect(() => ProjectInfoSchema.parse(invalid)).toThrow();
+  });
+});
+```
+
+### 9.2 Integration Testing
+[Complexity: Medium] <!-- generates: tests/integration/ -->
+
+```typescript
+// API Integration Tests
+describe('Proposal API', () => {
+  it('creates proposal with calculations', async () => {
+    const response = await fetch('/api/proposals', {
+      method: 'POST',
+      body: JSON.stringify(mockProposalData()),
+    });
+    
+    const data = await response.json();
+    expect(response.status).toBe(201);
+    expect(data.calculations.totalBid).toBeGreaterThan(0);
+    expect(data.id).toBeDefined();
+  });
+});
+
+// Database Integration Tests
+describe('Proposal Repository', () => {
+  it('saves and retrieves proposals', async () => {
+    const repo = new ProposalRepository();
+    const id = await repo.create(mockProposalData());
+    const retrieved = await repo.findById(id);
+    
+    expect(retrieved.projectInfo.projectName).toBe('Test Project');
+    expect(retrieved.version).toBe(1);
+  });
+});
+```
+
+### 9.3 End-to-End Testing
+[Complexity: High] <!-- generates: tests/e2e/ -->
+
+```typescript
+// Complete Workflow Tests
+test('complete proposal creation flow', async ({ page }) => {
+  // Step 1: Project Info
+  await page.goto('/proposals/new');
+  await page.fill('[name="projectName"]', 'Test Medical Center');
+  await page.fill('[name="projectAddress"]', '456 Health Blvd, San Diego, CA 92101');
+  await page.selectOption('[name="projectType"]', 'private');
+  await page.click('button:has-text("Next")');
+  
+  // Step 2: Scope
+  await page.check('[name="storefront.included"]');
+  await page.fill('[name="storefront.squareFootage"]', '5000');
+  await page.fill('[name="storefront.costPerSF"]', '125');
+  await page.click('button:has-text("Next")');
+  
+  // Step 3: Risk
+  await page.selectOption('[name="scheduleType"]', 'standard');
+  await page.fill('[name="buildingHeight"]', '4');
+  await page.click('button:has-text("Next")');
+  
+  // Step 4: Review & Generate
+  await expect(page.locator('.total-bid')).toContainText('$625,000');
+  await page.click('button:has-text("Generate Proposal")');
+  
+  // Verify PDF generation
+  const download = await page.waitForEvent('download');
+  expect(download.suggestedFilename()).toContain('proposal');
+});
+```
+
+---
+
+## 10. Deployment & Infrastructure
+
+### 10.1 Environment Configuration
+[Complexity: Low] <!-- generates: .env.example -->
+
+```bash
+# Application
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://proposals.cleanglass.com
+
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/proposals
+DATABASE_POOL_TIMEOUT=60
+
+# Authentication
+NEXTAUTH_SECRET=generate-secure-secret
+NEXTAUTH_URL=https://proposals.cleanglass.com
+
+# External Services
+GOOGLE_MAPS_API_KEY=your-api-key
+SENDGRID_API_KEY=your-api-key
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_S3_BUCKET=cleanglass-proposals
+AWS_REGION=us-west-1
+
+# Monitoring
+SENTRY_DSN=your-sentry-dsn
+POSTHOG_API_KEY=your-posthog-key
+
+# Feature Flags
+ENABLE_NATURAL_LANGUAGE=true
+ENABLE_MARKET_ANALYSIS=true
+ENABLE_BULK_OPERATIONS=false
+```
+
+### 10.2 CI/CD Pipeline
+[Complexity: Medium] <!-- generates: .github/workflows/deploy.yml -->
+
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Run linting
+        run: pnpm lint
+        
+      - name: Run type checking
+        run: pnpm type-check
+        
+      - name: Run unit tests
+        run: pnpm test:unit
+        
+      - name: Run integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to Vercel
+        uses: vercel/action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-args: '--prod'
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+```
+
+### 10.3 Monitoring & Observability
+[Complexity: Medium] <!-- generates: src/lib/monitoring/ -->
+
+```typescript
+// Error Tracking
+import * as Sentry from '@sentry/nextjs';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 0.1,
+  beforeSend(event) {
+    // Filter sensitive data
+    if (event.request?.data) {
+      delete event.request.data.projectAddress;
+      delete event.request.data.gcContact;
+    }
+    return event;
+  },
+});
+
+// Performance Monitoring
+export function trackCalculationPerformance(
+  duration: number,
+  projectSize: number
+) {
+  Sentry.addBreadcrumb({
+    category: 'calculation',
+    message: 'Calculation completed',
+    level: 'info',
+    data: { duration, projectSize },
+  });
+}
+
+// User Analytics
+import posthog from 'posthog-js';
+
+export function trackProposalCreated(proposalId: string, data: any) {
+  posthog.capture('proposal_created', {
+    proposalId,
+    projectType: data.projectInfo.projectType,
+    totalBid: data.calculations.totalBid,
+    riskLevel: data.calculations.contingency.riskLevel,
+    generationTime: data.generationTime,
+  });
+}
+```
+
+### 10.4 Security Checklist
+[Complexity: High] <!-- generates: docs/security-checklist.md -->
+
+- [ ] **Authentication**: Implement secure auth with 2FA option
+- [ ] **Authorization**: Role-based access control (RBAC)
+- [ ] **Data Encryption**: AES-256 at rest, TLS 1.3 in transit
+- [ ] **Input Validation**: Zod schemas on all user inputs
+- [ ] **SQL Injection**: Use Prisma ORM, no raw queries
+- [ ] **XSS Prevention**: React automatic escaping + CSP headers
+- [ ] **CSRF Protection**: NextAuth CSRF tokens
+- [ ] **Rate Limiting**: API rate limits per user/IP
+- [ ] **Audit Logging**: Track all data modifications
+- [ ] **Backup Strategy**: Automated daily backups with encryption
+- [ ] **PII Handling**: Minimize storage, encrypt sensitive fields
+- [ ] **Dependency Scanning**: Automated vulnerability checks
+- [ ] **Penetration Testing**: Schedule before production launch
+
+---
+
+## Appendix: Quick Reference
+
+### Development Commands
+```bash
+# Setup
+pnpm install
+pnpm db:migrate
+pnpm db:seed
+
+# Development
+pnpm dev
+pnpm test:watch
+pnpm type-check
+
+# Production
+pnpm build
+pnpm start
+
+# Database
+pnpm db:studio
+pnpm db:migrate:deploy
+pnpm db:backup
+```
+
+### Key Files Reference
+```
+src/
+├── app/api/proposals/route.ts     # Main API endpoint
+├── components/wizard/             # Wizard components
+├── lib/calculations/engine.ts     # Calculation logic
+├── lib/risk-assessment/          # Risk scoring
+├── stores/proposalStore.ts       # State management
+├── types/models.ts              # TypeScript types
+└── constants/index.ts           # Business constants
+```
+
+### Support & Documentation
+- **Internal Wiki**: `https://wiki.cleanglass.com/proposal-generator`
+- **API Docs**: `https://proposals.cleanglass.com/api-docs`
+- **Video Training**: `https://training.cleanglass.com/proposals`
+- **Support Email**: `tech-support@cleanglass.com`
+
+---
+
+**End of PRD v1.0.0**

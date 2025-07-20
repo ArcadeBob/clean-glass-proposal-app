@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Simple Calculation Engine
+# Status: pending
+# Dependencies: 3
+# Priority: high
+# Description: Implement direct cost calculations with fixed overhead and profit margins
+# Details:
+Build calculation engine for direct costs including materials, labor, and equipment. Apply fixed 15% overhead and 10% profit margins. No risk assessment in this phase - focus on core mathematical accuracy matching existing manual process.
+
+# Test Strategy:
+Verify calculations match manual spreadsheet results within 1% accuracy

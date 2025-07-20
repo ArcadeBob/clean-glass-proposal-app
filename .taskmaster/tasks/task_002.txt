@@ -1,0 +1,73 @@
+# Task ID: 2
+# Title: Project Infrastructure Setup
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Initialize Next.js 15 with TypeScript, configure database, and set up deployment pipeline
+# Details:
+Create new Next.js 15.0.3 project with TypeScript 5.3.3, set up PostgreSQL 16 database with Prisma 5.8.0, configure authentication (NextAuth or Clerk), and establish Vercel deployment pipeline with proper environment configuration.
+
+# Test Strategy:
+Verify project builds, database connects, auth works, and deployment succeeds
+
+# Subtasks:
+## 1. Initialize Next.js 15 Project with TypeScript [pending]
+### Dependencies: None
+### Description: Create new Next.js 15.0.3 project with TypeScript 5.3.3 configuration
+### Details:
+Run `npx create-next-app@15.0.3 clean-glass-proposal --typescript --tailwind --eslint --app --src-dir --import-alias '@/*'`. Configure TypeScript with strict mode, absolute imports, and path mapping. Set up ESLint and Prettier with Next.js recommended rules.
+
+## 2. Configure Project Dependencies [pending]
+### Dependencies: None
+### Description: Install and configure essential project dependencies
+### Details:
+Install required packages: `npm install @prisma/client prisma zustand react-hook-form @hookform/resolvers zod lucide-react @radix-ui/react-dialog @radix-ui/react-select`. Install dev dependencies: `npm install -D @types/node typescript@5.3.3`. Configure package.json scripts for development workflow.
+
+## 3. Setup PostgreSQL Database Connection [pending]
+### Dependencies: None
+### Description: Configure PostgreSQL 16 database instance and connection
+### Details:
+Set up local PostgreSQL 16 instance or configure cloud database (Neon/Supabase). Create database named 'clean_glass_proposals'. Configure environment variables: DATABASE_URL, DIRECT_URL (for migrations). Test connection and verify database is accessible.
+
+## 4. Initialize Prisma 5.8.0 Setup [pending]
+### Dependencies: None
+### Description: Configure Prisma ORM with initial schema and client generation
+### Details:
+Run `npx prisma init`, configure prisma/schema.prisma with PostgreSQL provider and client generator. Create initial User model for authentication. Generate Prisma client with `npx prisma generate`. Set up Prisma Studio for database management.
+
+## 5. Implement Authentication System [pending]
+### Dependencies: None
+### Description: Set up user authentication using NextAuth.js or Clerk
+### Details:
+Install and configure NextAuth.js v5 with database adapter for Prisma. Set up providers (email/password, Google OAuth). Create authentication pages (/login, /register, /profile). Implement middleware for route protection. Configure session management and JWT tokens.
+
+## 6. Configure Environment Variables [pending]
+### Dependencies: None
+### Description: Set up comprehensive environment configuration for all environments
+### Details:
+Create .env.local with all required variables: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, provider keys. Create .env.example template. Configure environment validation using zod. Set up different configs for development, staging, production.
+
+## 7. Setup Vercel Deployment Pipeline [pending]
+### Dependencies: None
+### Description: Configure automated deployment to Vercel with proper environment setup
+### Details:
+Connect repository to Vercel, configure build settings and environment variables. Set up preview deployments for pull requests. Configure production domain and SSL. Set up database connection for production environment. Test deployment process.
+
+## 8. Create Basic Project Structure [pending]
+### Dependencies: None
+### Description: Establish folder structure and initial components for the application
+### Details:
+Create folder structure: src/app/(auth), src/components/ui, src/lib, src/types, src/hooks. Set up basic layout components, navigation, and page templates. Create initial TypeScript interfaces for Proposal, User, Project data types matching PRD specifications.
+
+## 9. Configure Development Tools [pending]
+### Dependencies: None
+### Description: Set up development environment with debugging and testing tools
+### Details:
+Configure Next.js debugging in VS Code, set up React Developer Tools integration. Install and configure testing framework (Jest + React Testing Library). Set up hot reloading and fast refresh. Configure Git hooks with Husky for pre-commit linting.
+
+## 10. Initial Database Schema Migration [pending]
+### Dependencies: None
+### Description: Create and run initial database migration with core tables
+### Details:
+Design initial schema for User, Proposal, GeneralContractor tables as specified in PRD. Create migration with `npx prisma migrate dev --name init`. Seed database with test data for development. Verify all relationships and constraints work correctly.
+

@@ -1,0 +1,11 @@
+# Task ID: 8
+# Title: Advanced Calculation Engine
+# Status: pending
+# Dependencies: 7
+# Priority: high
+# Description: Implement regional adjustments, size-based rates, and risk-adjusted margins
+# Details:
+Enhance calculation engine with regional price adjustments, size-based overhead rates, risk-adjusted profit margins, and confidence scoring. Integrate with risk assessment to automatically adjust pricing based on project risk profile.
+
+# Test Strategy:
+Verify regional adjustments are accurate, test size-based scaling, validate risk-adjusted pricing

@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Basic PDF Generation
+# Status: pending
+# Dependencies: 4
+# Priority: high
+# Description: Generate text-based PDF proposals with calculated costs
+# Details:
+Implement PDF generation using a library like jsPDF or Puppeteer to create basic text-based proposals containing project details, calculations, and totals. Focus on functionality over design in this phase.
+
+# Test Strategy:
+Ensure PDFs generate successfully, contain all required information, and are readable

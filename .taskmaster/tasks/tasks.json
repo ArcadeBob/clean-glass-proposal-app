@@ -1,0 +1,309 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Phase 1: Core MVP Setup",
+        "description": "Establish foundation with Next.js 15, TypeScript, database, auth, and basic wizard flow",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Set up the core infrastructure for the proposal generator including project initialization, database setup, authentication, and a basic 4-step wizard flow with simple calculations. This phase focuses on getting a working MVP that can generate basic proposals.",
+        "testStrategy": "Verify project setup, test basic wizard flow, ensure calculations match manual process, validate PDF generation",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Project Infrastructure Setup",
+        "description": "Initialize Next.js 15 with TypeScript, configure database, and set up deployment pipeline",
+        "status": "in-progress",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Create new Next.js 15.0.3 project with TypeScript 5.3.3, set up PostgreSQL 16 database with Prisma 5.8.0, configure authentication (NextAuth or Clerk), and establish Vercel deployment pipeline with proper environment configuration.",
+        "testStrategy": "Verify project builds, database connects, auth works, and deployment succeeds",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Next.js 15 Project with TypeScript",
+            "description": "Create new Next.js 15.0.3 project with TypeScript 5.3.3 configuration",
+            "status": "done",
+            "details": "Run `npx create-next-app@15.0.3 clean-glass-proposal --typescript --tailwind --eslint --app --src-dir --import-alias '@/*'`. Configure TypeScript with strict mode, absolute imports, and path mapping. Set up ESLint and Prettier with Next.js recommended rules.",
+            "testStrategy": "Verify project creates successfully, TypeScript compiles without errors, dev server starts on localhost:3000"
+          },
+          {
+            "id": 2,
+            "title": "Configure Project Dependencies",
+            "description": "Install and configure essential project dependencies",
+            "status": "done",
+            "details": "Install required packages: `npm install @prisma/client prisma zustand react-hook-form @hookform/resolvers zod lucide-react @radix-ui/react-dialog @radix-ui/react-select`. Install dev dependencies: `npm install -D @types/node typescript@5.3.3`. Configure package.json scripts for development workflow.",
+            "testStrategy": "Verify all packages install correctly, no version conflicts, TypeScript recognizes all imports"
+          },
+          {
+            "id": 3,
+            "title": "Setup PostgreSQL Database Connection",
+            "description": "Configure PostgreSQL 16 database instance and connection",
+            "status": "done",
+            "details": "Set up local PostgreSQL 16 instance or configure cloud database (Neon/Supabase). Create database named 'clean_glass_proposals'. Configure environment variables: DATABASE_URL, DIRECT_URL (for migrations). Test connection and verify database is accessible.",
+            "testStrategy": "Verify database connection works, can create/drop test tables, environment variables load correctly"
+          },
+          {
+            "id": 4,
+            "title": "Initialize Prisma 5.8.0 Setup",
+            "description": "Configure Prisma ORM with initial schema and client generation",
+            "status": "done",
+            "details": "Run `npx prisma init`, configure prisma/schema.prisma with PostgreSQL provider and client generator. Create initial User model for authentication. Generate Prisma client with `npx prisma generate`. Set up Prisma Studio for database management.",
+            "testStrategy": "Verify Prisma client generates, schema validates, can run migrations, Prisma Studio opens"
+          },
+          {
+            "id": 5,
+            "title": "Implement Authentication System",
+            "description": "Set up user authentication using NextAuth.js or Clerk",
+            "status": "done",
+            "details": "Install and configure NextAuth.js v5 with database adapter for Prisma. Set up providers (email/password, Google OAuth). Create authentication pages (/login, /register, /profile). Implement middleware for route protection. Configure session management and JWT tokens.",
+            "testStrategy": "Verify user registration works, login/logout functions, protected routes redirect, session persists"
+          },
+          {
+            "id": 6,
+            "title": "Configure Environment Variables",
+            "description": "Set up comprehensive environment configuration for all environments",
+            "status": "pending",
+            "details": "Create .env.local with all required variables: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, provider keys. Create .env.example template. Configure environment validation using zod. Set up different configs for development, staging, production.",
+            "testStrategy": "Verify all environment variables load correctly, validation catches missing vars, no secrets in git"
+          },
+          {
+            "id": 7,
+            "title": "Setup Vercel Deployment Pipeline",
+            "description": "Configure automated deployment to Vercel with proper environment setup",
+            "status": "pending",
+            "details": "Connect repository to Vercel, configure build settings and environment variables. Set up preview deployments for pull requests. Configure production domain and SSL. Set up database connection for production environment. Test deployment process.",
+            "testStrategy": "Verify automatic deployments work, environment variables are set, database connects in production, SSL works"
+          },
+          {
+            "id": 8,
+            "title": "Create Basic Project Structure",
+            "description": "Establish folder structure and initial components for the application",
+            "status": "pending",
+            "details": "Create folder structure: src/app/(auth), src/components/ui, src/lib, src/types, src/hooks. Set up basic layout components, navigation, and page templates. Create initial TypeScript interfaces for Proposal, User, Project data types matching PRD specifications.",
+            "testStrategy": "Verify folder structure is logical, imports work correctly, TypeScript types are properly defined"
+          },
+          {
+            "id": 9,
+            "title": "Configure Development Tools",
+            "description": "Set up development environment with debugging and testing tools",
+            "status": "pending",
+            "details": "Configure Next.js debugging in VS Code, set up React Developer Tools integration. Install and configure testing framework (Jest + React Testing Library). Set up hot reloading and fast refresh. Configure Git hooks with Husky for pre-commit linting.",
+            "testStrategy": "Verify debugging works, tests run successfully, linting runs on commit, hot reload functions"
+          },
+          {
+            "id": 10,
+            "title": "Initial Database Schema Migration",
+            "description": "Create and run initial database migration with core tables",
+            "status": "pending",
+            "details": "Design initial schema for User, Proposal, GeneralContractor tables as specified in PRD. Create migration with `npx prisma migrate dev --name init`. Seed database with test data for development. Verify all relationships and constraints work correctly.",
+            "testStrategy": "Verify migration runs successfully, tables created correctly, relationships work, seed data populates"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Basic Wizard Flow Implementation",
+        "description": "Create 4-step proposal wizard with navigation, validation, and state management",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "details": "Implement the core proposal wizard with 4 steps: Project Details, Measurements, Options, and Review. Include form navigation, basic validation for required fields, Zustand state management, and localStorage persistence between sessions.",
+        "testStrategy": "Test wizard navigation, form validation, state persistence, and data retention",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Simple Calculation Engine",
+        "description": "Implement direct cost calculations with fixed overhead and profit margins",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "details": "Build calculation engine for direct costs including materials, labor, and equipment. Apply fixed 15% overhead and 10% profit margins. No risk assessment in this phase - focus on core mathematical accuracy matching existing manual process.",
+        "testStrategy": "Verify calculations match manual spreadsheet results within 1% accuracy",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Basic PDF Generation",
+        "description": "Generate text-based PDF proposals with calculated costs",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "details": "Implement PDF generation using a library like jsPDF or Puppeteer to create basic text-based proposals containing project details, calculations, and totals. Focus on functionality over design in this phase.",
+        "testStrategy": "Ensure PDFs generate successfully, contain all required information, and are readable",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Phase 2: Risk Assessment & Intelligence",
+        "description": "Implement advanced risk scoring, market analysis, and intelligent contingency recommendations",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "details": "Build sophisticated risk assessment system with 15+ weighted factors, market analysis capabilities, and intelligent pricing recommendations. This phase adds the intelligence that differentiates the system from simple calculators.",
+        "testStrategy": "Validate risk scores against expert assessment, verify market analysis accuracy, test contingency recommendations",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Risk Assessment System",
+        "description": "Build 15+ factor scoring engine with weighted calculations and visualizations",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "details": "Implement comprehensive risk scoring system covering schedule, technical, site, financial, and seasonal factors. Each factor has configurable weights and scoring algorithms. Include risk visualization components and automated contingency recommendations based on total risk score.",
+        "testStrategy": "Test risk calculations with known scenarios, validate factor weights, verify contingency logic",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Advanced Calculation Engine",
+        "description": "Implement regional adjustments, size-based rates, and risk-adjusted margins",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          7
+        ],
+        "details": "Enhance calculation engine with regional price adjustments, size-based overhead rates, risk-adjusted profit margins, and confidence scoring. Integrate with risk assessment to automatically adjust pricing based on project risk profile.",
+        "testStrategy": "Verify regional adjustments are accurate, test size-based scaling, validate risk-adjusted pricing",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Market Analysis Engine",
+        "description": "Build cost/SF benchmarking and win probability calculation system",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          8
+        ],
+        "details": "Implement market analysis featuring cost per square foot benchmarking, win probability calculations, package recommendations, and historical comparisons. This system helps position proposals competitively in the market.",
+        "testStrategy": "Validate benchmarking data, test win probability accuracy, verify recommendation logic",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Phase 3: Professional Polish",
+        "description": "Enhance UI/UX, implement professional PDF generation, and add data management",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "details": "Focus on user experience improvements, professional-quality PDF output, and comprehensive data management. This phase makes the system production-ready with mobile support and audit capabilities.",
+        "testStrategy": "Test responsive design, validate PDF quality, verify data management features",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Enhanced UI/UX Implementation",
+        "description": "Create responsive design with real-time calculations and natural language input",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "details": "Implement responsive design for mobile and tablet use, add real-time calculation display, natural language input parsing for measurements and descriptions, and comprehensive error handling with user-friendly messages.",
+        "testStrategy": "Test on multiple devices, verify real-time updates, validate natural language parsing",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Professional PDF Generation",
+        "description": "Create branded PDF templates with charts, visualizations, and multiple options",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          11
+        ],
+        "details": "Replace basic PDF with professional branded templates including company branding, dynamic content sections, charts and visualizations for risk assessment, and multiple template options for different proposal types.",
+        "testStrategy": "Verify brand compliance, test dynamic content, validate charts and visualizations",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Data Management System",
+        "description": "Implement GC database, proposal history, versioning, and activity logging",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          12
+        ],
+        "details": "Build comprehensive data management including General Contractor database integration, complete proposal history tracking, version management for proposal revisions, and detailed activity logging for audit trails.",
+        "testStrategy": "Test database operations, verify history tracking, validate version control, check audit logs",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Phase 4: Scale & Analytics",
+        "description": "Add analytics dashboard, advanced features, and integration capabilities",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          10
+        ],
+        "details": "Implement business intelligence features including analytics dashboard, bulk operations, template customization, and integration capabilities. This phase focuses on scaling and business optimization features.",
+        "testStrategy": "Validate analytics accuracy, test bulk operations, verify integrations",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Analytics Dashboard",
+        "description": "Build comprehensive analytics with metrics, trends, and performance monitoring",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          13
+        ],
+        "details": "Create analytics dashboard showing proposal metrics and trends, win/loss analysis, user activity tracking, and system performance monitoring. Include exportable reports and visualization charts for business insights.",
+        "testStrategy": "Verify metric accuracy, test report generation, validate performance monitoring",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Advanced Features Implementation",
+        "description": "Add bulk operations, template customization, email automation, and API access",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          15
+        ],
+        "details": "Implement advanced features including bulk proposal operations, customizable PDF templates, automated email workflows, and REST API access for third-party integrations. Focus on power user and automation capabilities.",
+        "testStrategy": "Test bulk operations, verify template customization, validate email automation, check API functionality",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Integration Capabilities",
+        "description": "Build CRM connectivity and accounting system synchronization",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          16
+        ],
+        "details": "Develop integration capabilities with common CRM systems and accounting software. Include data synchronization, automated workflow triggers, and standardized data exchange formats for seamless business process integration.",
+        "testStrategy": "Test CRM integrations, verify accounting sync, validate data consistency",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-20T17:10:50.856Z",
+      "updated": "2025-07-20T20:46:56.055Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
