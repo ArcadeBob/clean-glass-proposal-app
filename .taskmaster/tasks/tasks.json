@@ -43,7 +43,7 @@
             "title": "Implement Proposal Calculation Engine",
             "description": "Create the calculation logic for proposal pricing including overhead, profit margins, and risk factors",
             "details": "Build calculation engine in src/lib/calculations. Implement functions for: base material costs, overhead calculations (default 15%), profit margin calculations (default 20%), risk factor adjustments, total cost calculations. Create utility functions for unit conversions (SF to LF, etc.). Implement validation for calculation inputs. Add error handling for edge cases. Test calculations against manual examples to ensure accuracy.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -52,7 +52,7 @@
             "title": "Create Database Integration and CRUD Operations",
             "description": "Implement database operations for proposals, general contractors, and proposal items using Prisma",
             "details": "Create API routes for CRUD operations: /api/proposals, /api/contractors, /api/proposals/[id]/items. Implement Prisma queries for creating, reading, updating, and deleting proposals. Add validation using Zod schemas. Implement error handling and proper HTTP status codes. Create utility functions for database operations. Test all CRUD operations with the seeded test data. Ensure proper relationship handling between proposals, contractors, and items.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -375,7 +375,7 @@
     ],
     "metadata": {
       "created": "2025-07-20T17:10:50.856Z",
-      "updated": "2025-07-21T03:56:43.322Z",
+      "updated": "2025-07-21T04:15:20.827Z",
       "description": "Tasks for master context"
     }
   }
