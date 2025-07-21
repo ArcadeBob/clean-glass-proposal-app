@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { calculateProposalPrice } from '../../../lib/calculations/proposal-calculations';
 import { ProposalFormData } from '../ProposalWizard';
 
@@ -8,6 +9,8 @@ interface ReviewStepProps {
 }
 
 export default function ReviewStep({ data }: ReviewStepProps) {
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
   const finalPrice = calculateProposalPrice({
     squareFootage: data.squareFootage,
     glassType: data.glassType,
@@ -51,6 +54,39 @@ export default function ReviewStep({ data }: ReviewStepProps) {
       custom: 'Custom',
     };
     return types[type as keyof typeof types] || type;
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const response = await fetch('/api/proposals/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `proposal-${data.projectName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -222,6 +258,66 @@ export default function ReviewStep({ data }: ReviewStepProps) {
           <p className="text-blue-800 whitespace-pre-wrap">{data.notes}</p>
         </div>
       )}
+
+      {/* PDF Download Button */}
+      <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+        <h3 className="text-lg font-semibold text-blue-900 mb-4">
+          Download Proposal
+        </h3>
+        <p className="text-blue-800 mb-4">
+          Generate a professional PDF version of this proposal to share with
+          your client.
+        </p>
+        <button
+          onClick={handleDownloadPDF}
+          disabled={isGeneratingPDF}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+        >
+          {isGeneratingPDF ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span>Generating PDF...</span>
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <span>Download PDF</span>
+            </>
+          )}
+        </button>
+      </div>
 
       {/* Confirmation */}
       <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">

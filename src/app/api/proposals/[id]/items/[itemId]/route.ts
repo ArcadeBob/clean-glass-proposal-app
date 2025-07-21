@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     // Get current user session
@@ -19,7 +19,7 @@ export async function PUT(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, itemId } = params;
+    const { id, itemId } = await params;
 
     // Check if proposal exists and user owns it
     const proposal = await getProposalById(id, session.user.id);
@@ -80,7 +80,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     // Get current user session
@@ -89,7 +89,7 @@ export async function DELETE(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, itemId } = params;
+    const { id, itemId } = await params;
 
     // Check if proposal exists and user owns it
     const proposal = await getProposalById(id, session.user.id);

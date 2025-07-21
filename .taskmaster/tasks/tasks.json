@@ -61,7 +61,7 @@
             "title": "Implement PDF Generation for Proposals",
             "description": "Create PDF generation functionality for completed proposals with professional formatting",
             "details": "Install and configure PDF generation library (react-pdf or jsPDF). Create PDF template with company branding, proposal details, item breakdown, and total calculations. Implement PDF generation API endpoint. Add download functionality to proposal review step. Include all proposal data: project details, glass specifications, pricing breakdown, terms and conditions. Test PDF generation with various proposal sizes and content. Ensure professional formatting and layout.",
-            "status": "pending",
+            "status": "in-progress",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -375,7 +375,7 @@
     ],
     "metadata": {
       "created": "2025-07-20T17:10:50.856Z",
-      "updated": "2025-07-21T04:15:20.827Z",
+      "updated": "2025-07-21T04:18:48.394Z",
       "description": "Tasks for master context"
     }
   }
