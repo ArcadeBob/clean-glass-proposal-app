@@ -30,6 +30,10 @@ const proposalSchema = z.object({
   profitMargin: z.number().min(0).max(100),
   riskFactor: z.number().min(0).max(50),
 
+  // Market Analysis
+  region: z.string().optional(),
+  materialType: z.string().optional(),
+
   // Additional details
   notes: z.string().optional(),
 });
@@ -65,6 +69,8 @@ export default function ProposalWizard() {
       overheadPercentage: 15,
       profitMargin: 20,
       riskFactor: 5,
+      region: '',
+      materialType: '',
       notes: '',
     },
     mode: 'onChange',

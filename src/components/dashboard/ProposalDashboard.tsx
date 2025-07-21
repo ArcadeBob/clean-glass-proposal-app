@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Edit, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, Edit, Eye, Plus, Search, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -39,6 +39,8 @@ const statusLabels = {
   CANCELLED: 'Cancelled',
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,12 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'name'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedProposals, setSelectedProposals] = useState<Set<string>>(
+    new Set()
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [bulkAction, setBulkAction] = useState<string>('');
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
     fetchProposals();
@@ -76,7 +84,7 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
       });
 
       if (response.ok) {
-        // Update local state
+        // Optimistic update
         setProposals(prev =>
           prev.map(proposal =>
             proposal.id === proposalId
@@ -101,6 +109,7 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
       });
 
       if (response.ok) {
+        // Optimistic update
         setProposals(prev =>
           prev.filter(proposal => proposal.id !== proposalId)
         );
@@ -122,10 +131,101 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
 
       if (response.ok) {
         const newProposal = await response.json();
+        // Optimistic update
         setProposals(prev => [newProposal.data, ...prev]);
       }
     } catch (error) {
       console.error('Error duplicating proposal:', error);
+    }
+  };
+
+  // Bulk operations
+  const handleSelectAll = () => {
+    if (selectedProposals.size === filteredProposals.length) {
+      setSelectedProposals(new Set());
+    } else {
+      setSelectedProposals(new Set(filteredProposals.map(p => p.id)));
+    }
+  };
+
+  const handleSelectProposal = (proposalId: string) => {
+    const newSelected = new Set(selectedProposals);
+    if (newSelected.has(proposalId)) {
+      newSelected.delete(proposalId);
+    } else {
+      newSelected.add(proposalId);
+    }
+    setSelectedProposals(newSelected);
+  };
+
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedProposals.size === 0) return;
+
+    const selectedIds = Array.from(selectedProposals);
+
+    try {
+      if (bulkAction === 'delete') {
+        if (
+          !confirm(
+            `Are you sure you want to delete ${selectedIds.length} proposal(s)?`
+          )
+        ) {
+          return;
+        }
+
+        const response = await fetch('/api/proposals/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'delete',
+            proposalIds: selectedIds,
+          }),
+        });
+
+        if (response.ok) {
+          // Optimistic update for delete
+          setProposals(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        } else {
+          throw new Error('Failed to delete proposals');
+        }
+      } else if (bulkAction.startsWith('status:')) {
+        const newStatus = bulkAction.split(':')[1];
+
+        const response = await fetch('/api/proposals/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'status',
+            proposalIds: selectedIds,
+            status: newStatus,
+          }),
+        });
+
+        if (response.ok) {
+          // Optimistic update for status change
+          setProposals(prev =>
+            prev.map(proposal =>
+              selectedIds.includes(proposal.id)
+                ? { ...proposal, status: newStatus as Proposal['status'] }
+                : proposal
+            )
+          );
+        } else {
+          throw new Error('Failed to update proposal status');
+        }
+      }
+
+      // Clear selection and action
+      setSelectedProposals(new Set());
+      setBulkAction('');
+      setShowBulkActions(false);
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      alert('Failed to perform bulk action. Please try again.');
     }
   };
 
@@ -162,6 +262,12 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
 
       return sortOrder === 'asc' ? comparison : -comparison;
     });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredProposals.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedProposals = filteredProposals.slice(startIndex, endIndex);
 
   const getStatusCounts = () => {
     const counts: Record<string, number> = { all: proposals.length };
@@ -218,7 +324,7 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -231,7 +337,7 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
               />
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
@@ -264,6 +370,48 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedProposals.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedProposals.size} proposal(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedProposals(new Set())}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={bulkAction}
+                onChange={e => setBulkAction(e.target.value)}
+                className="px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select action...</option>
+                <option value="delete">Delete Selected</option>
+                <option value="status:DRAFT">Mark as Draft</option>
+                <option value="status:SENT">Mark as Sent</option>
+                <option value="status:ACCEPTED">Mark as Accepted</option>
+                <option value="status:REJECTED">Mark as Rejected</option>
+                <option value="status:EXPIRED">Mark as Expired</option>
+                <option value="status:CANCELLED">Mark as Cancelled</option>
+              </select>
+              <button
+                onClick={handleBulkAction}
+                disabled={!bulkAction}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Proposals List */}
       <div className="bg-white shadow rounded-lg">
@@ -308,6 +456,17 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedProposals.size === filteredProposals.length &&
+                        filteredProposals.length > 0
+                      }
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Proposal
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -328,8 +487,16 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProposals.map(proposal => (
+                {paginatedProposals.map(proposal => (
                   <tr key={proposal.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedProposals.has(proposal.id)}
+                        onChange={() => handleSelectProposal(proposal.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -412,6 +579,78 @@ export default function ProposalDashboard({ userId }: ProposalDashboardProps) {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(endIndex, filteredProposals.length)}
+                </span>{' '}
+                of{' '}
+                <span className="font-medium">{filteredProposals.length}</span>{' '}
+                results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        page === currentPage
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+                <button
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

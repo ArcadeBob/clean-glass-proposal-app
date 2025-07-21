@@ -109,6 +109,7 @@ model Proposal {
   user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   generalContractor     GeneralContractor? @relation(fields: [generalContractorId], references: [id], onDelete: SetNull)
   items                 ProposalItem[]
+  riskAssessment        RiskAssessment?
   
   // Metadata
   createdAt             DateTime         @default(now()) @map("created_at")
@@ -139,6 +140,114 @@ model ProposalItem {
   @@map("proposal_items")
 }
 
+// Risk Assessment Models
+model RiskCategory {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  weight      Decimal     @db.Decimal(5, 2) @default(0) // Category weight in overall risk calculation
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  
+  // Relationships
+  riskFactors RiskFactor[]
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("risk_categories")
+}
+
+model RiskFactor {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  categoryId  String      @map("category_id")
+  weight      Decimal     @db.Decimal(5, 2) @default(0) // Factor weight within category
+  scoringType ScoringType @default(LINEAR)
+  dataType    DataType    @default(NUMERIC)
+  minValue    Decimal?    @db.Decimal(10, 4)
+  maxValue    Decimal?    @db.Decimal(10, 4)
+  defaultValue Decimal?   @db.Decimal(10, 4)
+  options     Json?       // For categorical factors, store possible values
+  formula     String?     // For complex calculations
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  
+  // Relationships
+  category    RiskCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  assessments RiskFactorAssessment[]
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@unique([name, categoryId])
+  @@map("risk_factors")
+}
+
+model RiskAssessment {
+  id                String      @id @default(cuid())
+  proposalId        String      @unique @map("proposal_id")
+  totalRiskScore    Decimal     @db.Decimal(5, 2) @default(0)
+  riskLevel         RiskLevel   @default(LOW)
+  contingencyRate   Decimal     @db.Decimal(5, 2) @default(0)
+  recommendations   Json?       // Store risk mitigation recommendations
+  notes             String?
+  
+  // Relationships
+  proposal          Proposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  factorAssessments RiskFactorAssessment[]
+  
+  // Metadata
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  @@map("risk_assessments")
+}
+
+model RiskFactorAssessment {
+  id                String      @id @default(cuid())
+  riskAssessmentId  String      @map("risk_assessment_id")
+  riskFactorId      String      @map("risk_factor_id")
+  inputValue        Decimal?    @db.Decimal(10, 4)
+  textValue         String?
+  calculatedScore   Decimal     @db.Decimal(5, 2)
+  weightedScore     Decimal     @db.Decimal(5, 2)
+  notes             String?
+  
+  // Relationships
+  riskAssessment    RiskAssessment @relation(fields: [riskAssessmentId], references: [id], onDelete: Cascade)
+  riskFactor        RiskFactor     @relation(fields: [riskFactorId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  @@unique([riskAssessmentId, riskFactorId])
+  @@map("risk_factor_assessments")
+}
+
+// Market Analysis Models
+model MarketData {
+  id          String      @id @default(cuid())
+  dataType    MarketDataType
+  region      String?
+  value       Decimal     @db.Decimal(10, 4)
+  unit        String?
+  effectiveDate DateTime  @map("effective_date")
+  source      String?
+  notes       String?
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("market_data")
+}
+
+// Enums
 enum UserRole {
   USER
   ADMIN
@@ -175,4 +284,36 @@ enum ItemCategory {
   EQUIPMENT
   MATERIALS
   OTHER
+}
+
+enum ScoringType {
+  LINEAR
+  EXPONENTIAL
+  THRESHOLD
+  CATEGORICAL
+  FORMULA
+}
+
+enum DataType {
+  NUMERIC
+  PERCENTAGE
+  CURRENCY
+  CATEGORICAL
+  BOOLEAN
+  DATE
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MarketDataType {
+  MATERIAL_PRICE
+  LABOR_RATE
+  ECONOMIC_INDICATOR
+  REGIONAL_MULTIPLIER
+  SEASONAL_FACTOR
 }

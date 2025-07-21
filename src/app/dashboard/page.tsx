@@ -1,5 +1,6 @@
 import SignOutButton from '@/components/SignOutButton';
 import ProposalDashboard from '@/components/dashboard/ProposalDashboard';
+import RiskDashboardDemo from '@/components/dashboard/RiskDashboardDemo';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -33,8 +34,9 @@ export default async function DashboardPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
+        <div className="px-4 py-6 sm:px-0 space-y-8">
           <ProposalDashboard userId={session.user.id} />
+          <RiskDashboardDemo />
         </div>
       </main>
     </div>
