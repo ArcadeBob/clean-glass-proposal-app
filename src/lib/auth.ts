@@ -1,10 +1,9 @@
-import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
+import NextAuth from "next-auth"
 // import GoogleProvider from "next-auth/providers/google" // Removed for now
-import CredentialsProvider from "next-auth/providers/credentials"
+import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcryptjs"
-import { PrismaClient } from "../generated/prisma"
-import { getAuthConfig } from "./env-config"
+import CredentialsProvider from "next-auth/providers/credentials"
 
 const prisma = new PrismaClient()
 
