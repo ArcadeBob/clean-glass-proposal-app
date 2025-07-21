@@ -373,8 +373,8 @@
             "dependencies": [
               1
             ],
-            "details": "Create a tiered overhead calculation system with different rates for project size brackets (small: <$50k, medium: $50k-$200k, large: >$200k). Implement smooth scaling algorithms to avoid abrupt rate changes at boundaries. Include overhead categories (administrative, equipment, insurance) with size-specific adjustments. Ensure backward compatibility with existing fixed-rate calculations.",
-            "status": "pending",
+            "details": "Create a tiered overhead calculation system with different rates for project size brackets (small: <$50k, medium: $50k-$200k, large: >$200k). Implement smooth scaling algorithms to avoid abrupt rate changes at boundaries. Include overhead categories (administrative, equipment, insurance) with size-specific adjustments. Ensure backward compatibility with existing fixed-rate calculations.\n<info added on 2025-07-21T23:47:26.876Z>\nCOMPLETED: Size-Based Overhead Rate Calculator Implementation\n\nCore Implementation Complete:\n- Created SizeBasedOverheadCalculator class with comprehensive tiered and smooth scaling algorithms\n- Implemented 5-tier system with dynamic rates based on project size\n- Added smooth scaling with ease-in-out curve interpolation to avoid abrupt rate changes\n- Built overhead category breakdown for detailed analysis\n\nIntegration Complete:\n- Integrated with enhanced-proposal-calculations.ts for both main calculation and wizard functions\n- Added size-based overhead options to calculation schemas and interfaces\n- Maintained backward compatibility with existing fixed-rate calculations\n- Added size-based overhead information to calculation results\n\nAdvanced Features:\n- Smooth scaling algorithm with non-linear interpolation curves\n- Boundary condition handling for exact tier transitions\n- Custom tier configuration support\n- Comprehensive error handling and validation\n- Overhead breakdown by category for detailed analysis\n\nTesting & Validation:\n- 105 comprehensive tests covering all scenarios\n- Tiered calculation validation with exact rate matching\n- Smooth scaling validation with interpolation testing\n- Edge case handling (empty tiers, boundary conditions, very large projects)\n- Real-world scenario testing with commercial and residential projects\n\nBackward Compatibility:\n- Legacy fixed-rate calculations still work when size-based overhead is disabled\n- Graceful fallback to default rates for edge cases\n- Maintains existing API interfaces while adding new functionality\n\nThe size-based overhead calculator is now fully implemented and integrated, providing dynamic overhead rates that reflect economies of scale while maintaining smooth transitions between project size tiers.\n</info added on 2025-07-21T23:47:26.876Z>",
+            "status": "done",
             "testStrategy": "Verify overhead rates scale appropriately with project size, test boundary conditions between size tiers, validate total overhead calculations"
           },
           {
@@ -532,7 +532,7 @@
     ],
     "metadata": {
       "created": "2025-07-20T17:10:50.856Z",
-      "updated": "2025-07-21T23:31:32.742Z",
+      "updated": "2025-07-21T23:47:34.947Z",
       "description": "Tasks for master context"
     }
   }

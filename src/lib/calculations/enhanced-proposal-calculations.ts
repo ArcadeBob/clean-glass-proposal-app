@@ -9,12 +9,16 @@ import {
   analyzeMarketConditions,
   MarketAnalysisResult,
 } from './market-analysis';
+import { calculateSizeBasedOverhead } from './size-based-overhead';
 
 // Enhanced validation schemas
 export const EnhancedProposalCalculationSchema = z.object({
   baseCost: z.number().min(0),
   overheadPercentage: z.number().min(0).max(100).default(15),
   profitMargin: z.number().min(0).max(100).default(20),
+  // Size-based overhead options
+  useSizeBasedOverhead: z.boolean().default(true),
+  useSmoothScaling: z.boolean().default(true),
   // Risk assessment inputs
   projectType: z.string().optional(),
   squareFootage: z.number().optional(),
@@ -46,6 +50,15 @@ export interface EnhancedProposalCalculationResult {
   profitMargin: number;
   totalCost: number;
 
+  // Size-based overhead results
+  isSizeBasedOverhead: boolean;
+  overheadTier?: {
+    maxSize: number;
+    rate: number;
+    description: string;
+  };
+  overheadCalculationMethod?: 'tiered' | 'smooth' | 'fixed';
+
   // Risk assessment results
   riskAssessment: RiskScoringResult | null;
   riskAdjustment: number;
@@ -74,6 +87,8 @@ export async function calculateEnhancedProposalPricing(
     baseCost,
     overheadPercentage,
     profitMargin,
+    useSizeBasedOverhead,
+    useSmoothScaling,
     projectType,
     squareFootage,
     buildingHeight,
@@ -132,8 +147,35 @@ export async function calculateEnhancedProposalPricing(
     confidence = 0.8; // Lower confidence for legacy method
   }
 
-  // Calculate overhead
-  const overheadAmount = (baseCost * overheadPercentage) / 100;
+  // Calculate overhead with size-based adjustment
+  let overheadAmount: number;
+  let actualOverheadPercentage: number;
+  let isSizeBasedOverhead = false;
+  let overheadTier:
+    | { maxSize: number; rate: number; description: string }
+    | undefined;
+  let overheadCalculationMethod: 'tiered' | 'smooth' | 'fixed' | undefined;
+
+  if (useSizeBasedOverhead && baseCost > 0) {
+    // Use size-based overhead calculation
+    const sizeBasedResult = calculateSizeBasedOverhead(
+      baseCost,
+      baseCost, // Use baseCost as project size
+      useSmoothScaling
+    );
+
+    overheadAmount = sizeBasedResult.overheadAmount;
+    actualOverheadPercentage = sizeBasedResult.overheadRate * 100; // Convert to percentage
+    isSizeBasedOverhead = true;
+    overheadTier = sizeBasedResult.tier;
+    overheadCalculationMethod = sizeBasedResult.method;
+  } else {
+    // Use fixed overhead percentage
+    overheadAmount = (baseCost * overheadPercentage) / 100;
+    actualOverheadPercentage = overheadPercentage;
+    isSizeBasedOverhead = false;
+  }
+
   const costWithOverhead = baseCost + overheadAmount;
 
   // Calculate profit margin
@@ -192,10 +234,13 @@ export async function calculateEnhancedProposalPricing(
   return {
     baseCost,
     overheadAmount,
-    overheadPercentage,
+    overheadPercentage: actualOverheadPercentage,
     profitAmount,
     profitMargin,
     totalCost,
+    isSizeBasedOverhead,
+    overheadTier,
+    overheadCalculationMethod,
     riskAssessment,
     riskAdjustment,
     contingencyAmount,
@@ -277,6 +322,8 @@ export async function calculateEnhancedProposalPrice(input: {
   quantity: number;
   overheadPercentage: number;
   profitMargin: number;
+  useSizeBasedOverhead?: boolean;
+  useSmoothScaling?: boolean;
   riskFactorInputs?: Record<
     string,
     { value: number | string | boolean; notes?: string }
@@ -293,6 +340,12 @@ export async function calculateEnhancedProposalPrice(input: {
   contingencyAmount: number;
   costPerSquareFoot: number;
   marketAnalysis?: any;
+  isSizeBasedOverhead?: boolean;
+  overheadTier?: {
+    maxSize: number;
+    rate: number;
+    description: string;
+  };
 }> {
   // Base cost calculation based on specifications
   let baseCostPerSqFt = 25; // Base rate per square foot
@@ -334,7 +387,31 @@ export async function calculateEnhancedProposalPrice(input: {
     ] || 1.0;
 
   const baseCost = baseCostPerSqFt * input.squareFootage * input.quantity;
-  const overheadAmount = (baseCost * input.overheadPercentage) / 100;
+
+  // Calculate overhead with size-based adjustment
+  let overheadAmount: number;
+  let isSizeBasedOverhead = false;
+  let overheadTier:
+    | { maxSize: number; rate: number; description: string }
+    | undefined;
+
+  if (input.useSizeBasedOverhead && baseCost > 0) {
+    // Use size-based overhead calculation
+    const sizeBasedResult = calculateSizeBasedOverhead(
+      baseCost,
+      baseCost, // Use baseCost as project size
+      input.useSmoothScaling ?? true
+    );
+
+    overheadAmount = sizeBasedResult.overheadAmount;
+    isSizeBasedOverhead = true;
+    overheadTier = sizeBasedResult.tier;
+  } else {
+    // Use fixed overhead percentage
+    overheadAmount = (baseCost * input.overheadPercentage) / 100;
+    isSizeBasedOverhead = false;
+  }
+
   const costWithOverhead = baseCost + overheadAmount;
 
   // Risk assessment
@@ -392,6 +469,8 @@ export async function calculateEnhancedProposalPrice(input: {
     contingencyAmount,
     costPerSquareFoot,
     marketAnalysis,
+    isSizeBasedOverhead,
+    overheadTier,
   };
 }
 
