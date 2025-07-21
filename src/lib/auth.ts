@@ -4,7 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { PrismaClient } from "../generated/prisma"
-import { env } from "./env"
+import { getAuthConfig } from "./env-config"
 
 const prisma = new PrismaClient()
 
