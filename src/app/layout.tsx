@@ -1,7 +1,8 @@
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import SessionProvider from "@/components/SessionProvider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import SessionProvider from "@/components/SessionProvider";
 // Load and validate environment variables at app startup
 import "@/lib/env";
 
@@ -31,9 +32,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        <GlobalErrorBoundary>
+          <SessionProvider>
+            {children}
+          </SessionProvider>
+        </GlobalErrorBoundary>
       </body>
     </html>
   );
