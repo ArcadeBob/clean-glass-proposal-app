@@ -107,3 +107,78 @@ export function calculateTotalProposal(
     riskScore,
   });
 }
+
+/**
+ * Calculate proposal price for wizard step
+ */
+export function calculateProposalPrice(input: {
+  squareFootage: number;
+  glassType: string;
+  framingType: string;
+  hardwareType: string;
+  quantity: number;
+  overheadPercentage: number;
+  profitMargin: number;
+  riskFactor: number;
+}): {
+  baseCost: number;
+  withOverhead: number;
+  finalPrice: number;
+} {
+  // Base cost calculation based on specifications
+  let baseCostPerSqFt = 25; // Base rate per square foot
+
+  // Adjust for glass type
+  const glassTypeMultipliers = {
+    clear: 1.0,
+    tinted: 1.2,
+    reflective: 1.5,
+    low_e: 1.3,
+    tempered: 1.4,
+  };
+  baseCostPerSqFt *=
+    glassTypeMultipliers[
+      input.glassType as keyof typeof glassTypeMultipliers
+    ] || 1.0;
+
+  // Adjust for framing type
+  const framingTypeMultipliers = {
+    aluminum: 1.0,
+    steel: 1.3,
+    wood: 1.1,
+    vinyl: 0.9,
+  };
+  baseCostPerSqFt *=
+    framingTypeMultipliers[
+      input.framingType as keyof typeof framingTypeMultipliers
+    ] || 1.0;
+
+  // Adjust for hardware type
+  const hardwareTypeMultipliers = {
+    standard: 1.0,
+    premium: 1.2,
+    custom: 1.5,
+  };
+  baseCostPerSqFt *=
+    hardwareTypeMultipliers[
+      input.hardwareType as keyof typeof hardwareTypeMultipliers
+    ] || 1.0;
+
+  // Calculate base cost
+  const baseCost = input.squareFootage * baseCostPerSqFt * input.quantity;
+
+  // Calculate with overhead
+  const overheadAmount = (baseCost * input.overheadPercentage) / 100;
+  const withOverhead = baseCost + overheadAmount;
+
+  // Calculate final price with profit margin and risk factor
+  const profitAmount = (withOverhead * input.profitMargin) / 100;
+  const riskAmount = (withOverhead * input.riskFactor) / 100;
+  const finalPrice = withOverhead + profitAmount + riskAmount;
+
+  return {
+    baseCost,
+    withOverhead,
+    finalPrice,
+  };
+}

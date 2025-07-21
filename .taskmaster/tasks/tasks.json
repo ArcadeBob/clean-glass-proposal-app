@@ -34,7 +34,7 @@
             "title": "Create Basic 4-Step Proposal Wizard Flow",
             "description": "Build the core wizard interface with 4 steps: Project Details, Glass Specifications, Pricing, and Review",
             "details": "Create wizard components using React Hook Form and Zod validation. Implement 4-step flow: 1) Project Details (name, address, type, square footage), 2) Glass Specifications (glass type, framing, hardware), 3) Pricing (overhead, profit margin, risk factors), 4) Review (summary and final calculations). Use Zustand for state management. Implement step navigation with progress indicator. Add form validation and error handling.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 1
           },
@@ -375,7 +375,7 @@
     ],
     "metadata": {
       "created": "2025-07-20T17:10:50.856Z",
-      "updated": "2025-07-21T03:49:20.326Z",
+      "updated": "2025-07-21T03:56:43.322Z",
       "description": "Tasks for master context"
     }
   }
