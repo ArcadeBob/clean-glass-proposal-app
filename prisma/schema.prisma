@@ -50,6 +50,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  proposals Proposal[] // User can create multiple proposals
 
   @@map("users")
 }
@@ -63,7 +64,115 @@ model VerificationToken {
   @@map("verificationtokens")
 }
 
+model GeneralContractor {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  company     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  proposals Proposal[] // GC can have multiple proposals
+
+  @@map("general_contractors")
+}
+
+model Proposal {
+  id                    String           @id @default(cuid())
+  title                 String
+  description           String?
+  status                ProposalStatus   @default(DRAFT)
+  totalAmount           Decimal          @db.Decimal(10, 2) @default(0)
+  overheadPercentage    Decimal          @db.Decimal(5, 2) @default(15.00)
+  profitMargin          Decimal          @db.Decimal(5, 2) @default(20.00)
+  riskScore             Int?             @default(0)
+  winProbability        Decimal?         @db.Decimal(5, 2)
+  
+  // Project details
+  projectName           String?
+  projectAddress        String?
+  projectType           ProjectType?
+  squareFootage         Decimal?         @db.Decimal(10, 2)
+  
+  // Dates
+  proposalDate          DateTime         @default(now())
+  validUntil            DateTime?
+  estimatedStartDate    DateTime?
+  estimatedEndDate      DateTime?
+  
+  // Relationships
+  userId                String           @map("user_id")
+  generalContractorId   String?          @map("general_contractor_id")
+  
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generalContractor     GeneralContractor? @relation(fields: [generalContractorId], references: [id], onDelete: SetNull)
+  items                 ProposalItem[]
+  
+  // Metadata
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+  version               Int              @default(1)
+  
+  @@map("proposals")
+}
+
+model ProposalItem {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  quantity        Decimal       @db.Decimal(10, 2)
+  unit            String        @default("SF") // Square Feet, Linear Feet, etc.
+  unitCost        Decimal       @db.Decimal(10, 2)
+  totalCost       Decimal       @db.Decimal(10, 2)
+  category        ItemCategory  @default(GLASS)
+  
+  // Relationships
+  proposalId      String        @map("proposal_id")
+  proposal        Proposal      @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  @@map("proposal_items")
+}
+
 enum UserRole {
   USER
   ADMIN
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum ProjectType {
+  COMMERCIAL
+  RESIDENTIAL
+  INDUSTRIAL
+  INSTITUTIONAL
+  RETAIL
+  HOSPITALITY
+  HEALTHCARE
+  EDUCATIONAL
+  OTHER
+}
+
+enum ItemCategory {
+  GLASS
+  FRAMING
+  HARDWARE
+  SEALANT
+  ACCESSORIES
+  LABOR
+  EQUIPMENT
+  MATERIALS
+  OTHER
 }

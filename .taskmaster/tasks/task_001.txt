@@ -9,3 +9,53 @@ Set up the core infrastructure for the proposal generator including project init
 
 # Test Strategy:
 Verify project setup, test basic wizard flow, ensure calculations match manual process, validate PDF generation
+
+# Subtasks:
+## 1. Setup Next.js 15 Project Structure and TypeScript Configuration [pending]
+### Dependencies: None
+### Description: Configure Next.js 15 with TypeScript, set up proper folder structure, and ensure all configurations are optimized for the proposal app
+### Details:
+Verify Next.js 15.0.3 is properly configured with TypeScript 5.3.3. Set up folder structure: src/app/(dashboard), src/components/wizard, src/lib/calculations, src/types. Configure TypeScript with strict mode, absolute imports, and proper path mapping. Ensure ESLint and Prettier are configured for Next.js best practices.
+
+## 2. Implement Authentication System Integration [pending]
+### Dependencies: None
+### Description: Integrate NextAuth.js with the existing database schema and create protected routes for the proposal app
+### Details:
+Configure NextAuth.js v5 with Prisma adapter using existing User model. Set up email/password and Google OAuth providers. Create authentication pages (/login, /register, /profile). Implement middleware for route protection. Configure session management and JWT tokens. Test user registration, login, logout, and protected route access.
+
+## 3. Create Basic 4-Step Proposal Wizard Flow [pending]
+### Dependencies: None
+### Description: Build the core wizard interface with 4 steps: Project Details, Glass Specifications, Pricing, and Review
+### Details:
+Create wizard components using React Hook Form and Zod validation. Implement 4-step flow: 1) Project Details (name, address, type, square footage), 2) Glass Specifications (glass type, framing, hardware), 3) Pricing (overhead, profit margin, risk factors), 4) Review (summary and final calculations). Use Zustand for state management. Implement step navigation with progress indicator. Add form validation and error handling.
+
+## 4. Implement Proposal Calculation Engine [pending]
+### Dependencies: None
+### Description: Create the calculation logic for proposal pricing including overhead, profit margins, and risk factors
+### Details:
+Build calculation engine in src/lib/calculations. Implement functions for: base material costs, overhead calculations (default 15%), profit margin calculations (default 20%), risk factor adjustments, total cost calculations. Create utility functions for unit conversions (SF to LF, etc.). Implement validation for calculation inputs. Add error handling for edge cases. Test calculations against manual examples to ensure accuracy.
+
+## 5. Create Database Integration and CRUD Operations [pending]
+### Dependencies: None
+### Description: Implement database operations for proposals, general contractors, and proposal items using Prisma
+### Details:
+Create API routes for CRUD operations: /api/proposals, /api/contractors, /api/proposals/[id]/items. Implement Prisma queries for creating, reading, updating, and deleting proposals. Add validation using Zod schemas. Implement error handling and proper HTTP status codes. Create utility functions for database operations. Test all CRUD operations with the seeded test data. Ensure proper relationship handling between proposals, contractors, and items.
+
+## 6. Implement PDF Generation for Proposals [pending]
+### Dependencies: None
+### Description: Create PDF generation functionality for completed proposals with professional formatting
+### Details:
+Install and configure PDF generation library (react-pdf or jsPDF). Create PDF template with company branding, proposal details, item breakdown, and total calculations. Implement PDF generation API endpoint. Add download functionality to proposal review step. Include all proposal data: project details, glass specifications, pricing breakdown, terms and conditions. Test PDF generation with various proposal sizes and content. Ensure professional formatting and layout.
+
+## 7. Create Dashboard and Proposal Management Interface [pending]
+### Dependencies: None
+### Description: Build the main dashboard for viewing, editing, and managing existing proposals
+### Details:
+Create dashboard page with proposal list, search, and filtering capabilities. Implement proposal status management (Draft, Sent, Accepted, Rejected). Add proposal editing functionality. Create proposal detail view with all information. Implement proposal duplication feature. Add bulk operations (delete, status change). Create responsive design for mobile and desktop. Add sorting and pagination for large proposal lists. Implement real-time updates using server actions.
+
+## 8. Testing and MVP Validation [pending]
+### Dependencies: None
+### Description: Comprehensive testing of the MVP to ensure all features work correctly and calculations are accurate
+### Details:
+Test the complete user flow: registration, login, proposal creation, calculations, PDF generation, and dashboard management. Verify all calculations match manual examples. Test form validation and error handling. Validate PDF generation with different proposal types. Test responsive design on various screen sizes. Perform integration testing with database operations. Test authentication and route protection. Validate all CRUD operations work correctly. Create test cases for edge cases and error scenarios.
+

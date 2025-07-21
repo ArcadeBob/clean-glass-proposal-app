@@ -10,7 +10,80 @@
         "dependencies": [],
         "details": "Set up the core infrastructure for the proposal generator including project initialization, database setup, authentication, and a basic 4-step wizard flow with simple calculations. This phase focuses on getting a working MVP that can generate basic proposals.",
         "testStrategy": "Verify project setup, test basic wizard flow, ensure calculations match manual process, validate PDF generation",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Setup Next.js 15 Project Structure and TypeScript Configuration",
+            "description": "Configure Next.js 15 with TypeScript, set up proper folder structure, and ensure all configurations are optimized for the proposal app",
+            "details": "Verify Next.js 15.0.3 is properly configured with TypeScript 5.3.3. Set up folder structure: src/app/(dashboard), src/components/wizard, src/lib/calculations, src/types. Configure TypeScript with strict mode, absolute imports, and proper path mapping. Ensure ESLint and Prettier are configured for Next.js best practices.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 2,
+            "title": "Implement Authentication System Integration",
+            "description": "Integrate NextAuth.js with the existing database schema and create protected routes for the proposal app",
+            "details": "Configure NextAuth.js v5 with Prisma adapter using existing User model. Set up email/password and Google OAuth providers. Create authentication pages (/login, /register, /profile). Implement middleware for route protection. Configure session management and JWT tokens. Test user registration, login, logout, and protected route access.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 3,
+            "title": "Create Basic 4-Step Proposal Wizard Flow",
+            "description": "Build the core wizard interface with 4 steps: Project Details, Glass Specifications, Pricing, and Review",
+            "details": "Create wizard components using React Hook Form and Zod validation. Implement 4-step flow: 1) Project Details (name, address, type, square footage), 2) Glass Specifications (glass type, framing, hardware), 3) Pricing (overhead, profit margin, risk factors), 4) Review (summary and final calculations). Use Zustand for state management. Implement step navigation with progress indicator. Add form validation and error handling.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 4,
+            "title": "Implement Proposal Calculation Engine",
+            "description": "Create the calculation logic for proposal pricing including overhead, profit margins, and risk factors",
+            "details": "Build calculation engine in src/lib/calculations. Implement functions for: base material costs, overhead calculations (default 15%), profit margin calculations (default 20%), risk factor adjustments, total cost calculations. Create utility functions for unit conversions (SF to LF, etc.). Implement validation for calculation inputs. Add error handling for edge cases. Test calculations against manual examples to ensure accuracy.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 5,
+            "title": "Create Database Integration and CRUD Operations",
+            "description": "Implement database operations for proposals, general contractors, and proposal items using Prisma",
+            "details": "Create API routes for CRUD operations: /api/proposals, /api/contractors, /api/proposals/[id]/items. Implement Prisma queries for creating, reading, updating, and deleting proposals. Add validation using Zod schemas. Implement error handling and proper HTTP status codes. Create utility functions for database operations. Test all CRUD operations with the seeded test data. Ensure proper relationship handling between proposals, contractors, and items.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 6,
+            "title": "Implement PDF Generation for Proposals",
+            "description": "Create PDF generation functionality for completed proposals with professional formatting",
+            "details": "Install and configure PDF generation library (react-pdf or jsPDF). Create PDF template with company branding, proposal details, item breakdown, and total calculations. Implement PDF generation API endpoint. Add download functionality to proposal review step. Include all proposal data: project details, glass specifications, pricing breakdown, terms and conditions. Test PDF generation with various proposal sizes and content. Ensure professional formatting and layout.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 7,
+            "title": "Create Dashboard and Proposal Management Interface",
+            "description": "Build the main dashboard for viewing, editing, and managing existing proposals",
+            "details": "Create dashboard page with proposal list, search, and filtering capabilities. Implement proposal status management (Draft, Sent, Accepted, Rejected). Add proposal editing functionality. Create proposal detail view with all information. Implement proposal duplication feature. Add bulk operations (delete, status change). Create responsive design for mobile and desktop. Add sorting and pagination for large proposal lists. Implement real-time updates using server actions.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          },
+          {
+            "id": 8,
+            "title": "Testing and MVP Validation",
+            "description": "Comprehensive testing of the MVP to ensure all features work correctly and calculations are accurate",
+            "details": "Test the complete user flow: registration, login, proposal creation, calculations, PDF generation, and dashboard management. Verify all calculations match manual examples. Test form validation and error handling. Validate PDF generation with different proposal types. Test responsive design on various screen sizes. Perform integration testing with database operations. Test authentication and route protection. Validate all CRUD operations work correctly. Create test cases for edge cases and error scenarios.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 1
+          }
+        ]
       },
       {
         "id": 2,
@@ -98,7 +171,7 @@
             "id": 10,
             "title": "Initial Database Schema Migration",
             "description": "Create and run initial database migration with core tables",
-            "status": "pending",
+            "status": "done",
             "details": "Design initial schema for User, Proposal, GeneralContractor tables as specified in PRD. Create migration with `npx prisma migrate dev --name init`. Seed database with test data for development. Verify all relationships and constraints work correctly.",
             "testStrategy": "Verify migration runs successfully, tables created correctly, relationships work, seed data populates"
           }
@@ -302,7 +375,7 @@
     ],
     "metadata": {
       "created": "2025-07-20T17:10:50.856Z",
-      "updated": "2025-07-21T02:42:20.938Z",
+      "updated": "2025-07-21T03:49:20.326Z",
       "description": "Tasks for master context"
     }
   }
