@@ -2,113 +2,212 @@ import { ProposalFormData } from '@/components/wizard/ProposalWizard';
 import {
   Document,
   Page,
-  renderToStream,
   StyleSheet,
   Text,
   View,
+  renderToStream,
 } from '@react-pdf/renderer';
 import React from 'react';
 import { calculateProposalPrice } from './calculations/proposal-calculations';
 
-// Create styles
+// Enhanced styles for professional appearance
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     padding: 40,
-    fontSize: 12,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
   },
   header: {
     marginBottom: 30,
-    borderBottom: '2 solid #2563eb',
+    borderBottom: '3 solid #1e40af',
     paddingBottom: 20,
+    position: 'relative',
   },
-  companyName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 5,
+  logoSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 15,
   },
   companyInfo: {
-    fontSize: 10,
+    flex: 1,
+  },
+  companyName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  companyTagline: {
+    fontSize: 12,
     color: '#6b7280',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  companyDetails: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginBottom: 3,
+    lineHeight: 1.3,
+  },
+  proposalInfo: {
+    alignItems: 'flex-end',
+    textAlign: 'right',
+  },
+  proposalNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e40af',
     marginBottom: 5,
   },
+  proposalDate: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginBottom: 3,
+  },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 25,
     textAlign: 'center',
     color: '#1f2937',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    borderBottom: '2 solid #e5e7eb',
+    paddingBottom: 10,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#374151',
-    backgroundColor: '#f3f4f6',
-    padding: 8,
+    marginBottom: 12,
+    color: '#1e40af',
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    borderLeft: '4 solid #1e40af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     marginBottom: 8,
-    borderBottom: '1 solid #e5e7eb',
-    paddingBottom: 5,
+    borderBottom: '1 solid #f1f5f9',
+    paddingBottom: 8,
+    minHeight: 20,
   },
   label: {
-    width: '40%',
+    width: '35%',
     fontWeight: 'bold',
-    color: '#4b5563',
+    color: '#374151',
+    fontSize: 9,
   },
   value: {
-    width: '60%',
+    width: '65%',
     color: '#1f2937',
+    fontSize: 9,
   },
   pricingSection: {
     backgroundColor: '#f0fdf4',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
+    padding: 20,
+    borderRadius: 8,
+    marginTop: 15,
+    border: '2 solid #22c55e',
   },
   pricingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 8,
+    paddingVertical: 4,
   },
   pricingLabel: {
     color: '#166534',
     fontWeight: 'bold',
+    fontSize: 9,
   },
   pricingValue: {
     color: '#166534',
     fontWeight: 'bold',
+    fontSize: 9,
   },
   finalPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#166534',
     borderTop: '2 solid #22c55e',
-    paddingTop: 10,
-    marginTop: 10,
+    paddingTop: 12,
+    marginTop: 12,
   },
   notes: {
-    marginTop: 20,
-    padding: 15,
+    marginTop: 25,
+    padding: 20,
     backgroundColor: '#eff6ff',
-    borderRadius: 5,
+    borderRadius: 8,
+    border: '1 solid #3b82f6',
   },
   notesTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 10,
     color: '#1e40af',
+    textTransform: 'uppercase',
   },
   notesContent: {
     color: '#1e40af',
+    lineHeight: 1.5,
+    fontSize: 9,
+  },
+  termsSection: {
+    marginTop: 30,
+    padding: 20,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    border: '1 solid #f59e0b',
+  },
+  termsTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#92400e',
+    textTransform: 'uppercase',
+  },
+  termsContent: {
+    color: '#92400e',
     lineHeight: 1.4,
+    fontSize: 8,
+  },
+  signatureSection: {
+    marginTop: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  signatureBox: {
+    width: '45%',
+    borderTop: '1 solid #6b7280',
+    paddingTop: 10,
+    marginTop: 30,
+  },
+  signatureLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  signatureLine: {
+    borderBottom: '1 solid #6b7280',
+    height: 30,
+    marginBottom: 5,
+  },
+  signatureInfo: {
+    fontSize: 8,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   footer: {
     position: 'absolute',
@@ -116,10 +215,17 @@ const styles = StyleSheet.create({
     left: 40,
     right: 40,
     textAlign: 'center',
-    fontSize: 10,
+    fontSize: 8,
     color: '#6b7280',
     borderTop: '1 solid #e5e7eb',
     paddingTop: 10,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 15,
+    right: 40,
+    fontSize: 8,
+    color: '#6b7280',
   },
 });
 
@@ -177,6 +283,9 @@ export async function generateProposalPDF(
     day: 'numeric',
   });
 
+  // Generate proposal number
+  const proposalNumber = `PROP-${Date.now().toString().slice(-6)}`;
+
   // Create the PDF document using React.createElement
   const pdfDocument = React.createElement(
     Document,
@@ -184,29 +293,61 @@ export async function generateProposalPDF(
     React.createElement(
       Page,
       { size: 'A4', style: styles.page },
-      // Header
+      // Enhanced Header
       React.createElement(
         View,
         { style: styles.header },
         React.createElement(
-          Text,
-          { style: styles.companyName },
-          'Clean Glass Proposals'
-        ),
-        React.createElement(
-          Text,
-          { style: styles.companyInfo },
-          'Professional Glazing Solutions'
-        ),
-        React.createElement(
-          Text,
-          { style: styles.companyInfo },
-          '123 Glass Street, Glazing City, GC 12345'
-        ),
-        React.createElement(
-          Text,
-          { style: styles.companyInfo },
-          'Phone: (555) 123-4567 | Email: info@cleanglass.com'
+          View,
+          { style: styles.logoSection },
+          React.createElement(
+            View,
+            { style: styles.companyInfo },
+            React.createElement(
+              Text,
+              { style: styles.companyName },
+              'Clean Glass Proposals'
+            ),
+            React.createElement(
+              Text,
+              { style: styles.companyTagline },
+              'Professional Glazing Solutions'
+            ),
+            React.createElement(
+              Text,
+              { style: styles.companyDetails },
+              '123 Glass Street, Glazing City, GC 12345'
+            ),
+            React.createElement(
+              Text,
+              { style: styles.companyDetails },
+              'Phone: (555) 123-4567 | Email: info@cleanglass.com'
+            ),
+            React.createElement(
+              Text,
+              { style: styles.companyDetails },
+              'License: GC-12345 | Insurance: $2M General Liability'
+            )
+          ),
+          React.createElement(
+            View,
+            { style: styles.proposalInfo },
+            React.createElement(
+              Text,
+              { style: styles.proposalNumber },
+              `Proposal #${proposalNumber}`
+            ),
+            React.createElement(
+              Text,
+              { style: styles.proposalDate },
+              `Date: ${currentDate}`
+            ),
+            React.createElement(
+              Text,
+              { style: styles.proposalDate },
+              'Valid for 30 days'
+            )
+          )
         )
       ),
       // Title
@@ -461,6 +602,76 @@ export async function generateProposalPDF(
           ),
           React.createElement(Text, { style: styles.notesContent }, data.notes)
         ),
+
+      // Terms and Conditions
+      React.createElement(
+        View,
+        { style: styles.termsSection },
+        React.createElement(
+          Text,
+          { style: styles.termsTitle },
+          'Terms and Conditions'
+        ),
+        React.createElement(
+          Text,
+          { style: styles.termsContent },
+          '1. This proposal is valid for 30 days from the date of issue.\n\n' +
+            '2. Payment terms: 50% deposit upon contract signing, balance due upon project completion.\n\n' +
+            '3. Project timeline will be confirmed upon contract signing and may vary based on material availability.\n\n' +
+            '4. All work includes standard warranty of 2 years on materials and 1 year on labor.\n\n' +
+            '5. Change orders must be submitted in writing and may affect project timeline and pricing.\n\n' +
+            '6. Clean Glass Proposals maintains $2M general liability insurance and workers compensation coverage.\n\n' +
+            '7. Permits and inspections are the responsibility of the client unless otherwise specified.\n\n' +
+            '8. Weather delays and force majeure events may extend project timeline without penalty.'
+        )
+      ),
+
+      // Signature Section
+      React.createElement(
+        View,
+        { style: styles.signatureSection },
+        React.createElement(
+          View,
+          { style: styles.signatureBox },
+          React.createElement(
+            Text,
+            { style: styles.signatureLabel },
+            'Client Signature'
+          ),
+          React.createElement(View, { style: styles.signatureLine }),
+          React.createElement(
+            Text,
+            { style: styles.signatureInfo },
+            'Print Name: _________________'
+          ),
+          React.createElement(
+            Text,
+            { style: styles.signatureInfo },
+            'Date: _________________'
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.signatureBox },
+          React.createElement(
+            Text,
+            { style: styles.signatureLabel },
+            'Company Representative'
+          ),
+          React.createElement(View, { style: styles.signatureLine }),
+          React.createElement(
+            Text,
+            { style: styles.signatureInfo },
+            'Print Name: _________________'
+          ),
+          React.createElement(
+            Text,
+            { style: styles.signatureInfo },
+            'Date: _________________'
+          )
+        )
+      ),
+
       // Footer
       React.createElement(
         View,
@@ -468,14 +679,13 @@ export async function generateProposalPDF(
         React.createElement(
           Text,
           {},
-          'This proposal is valid for 30 days from the date of issue.'
-        ),
-        React.createElement(
-          Text,
-          {},
           'Thank you for considering Clean Glass Proposals for your project.'
-        )
-      )
+        ),
+        React.createElement(Text, {}, 'We look forward to working with you!')
+      ),
+
+      // Page Number
+      React.createElement(Text, { style: styles.pageNumber }, 'Page 1 of 1')
     )
   );
 

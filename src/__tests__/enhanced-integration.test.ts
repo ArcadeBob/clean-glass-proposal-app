@@ -1,6 +1,6 @@
 import {
   calculateEnhancedProposalPricing,
-  clearOldAuditLogs,
+  clearAllAuditLogs,
   getCalculationAuditLogs,
   getCalculationStatistics,
   type EnhancedProposalCalculationInput,
@@ -9,12 +9,12 @@ import {
 describe('Enhanced Calculation Engine Integration Tests', () => {
   beforeEach(() => {
     // Clear audit logs before each test
-    clearOldAuditLogs(0);
+    clearAllAuditLogs();
   });
 
   afterEach(() => {
     // Clear audit logs after each test to prevent interference
-    clearOldAuditLogs(0);
+    clearAllAuditLogs();
   });
 
   describe('Enhanced Proposal Pricing Integration', () => {
@@ -224,7 +224,7 @@ describe('Enhanced Calculation Engine Integration Tests', () => {
 
     it('should provide calculation statistics', async () => {
       // Clear logs first to get clean count
-      clearOldAuditLogs(0);
+      clearAllAuditLogs();
 
       // Perform multiple calculations
       const inputs = [

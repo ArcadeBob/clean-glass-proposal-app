@@ -5,13 +5,13 @@ import {
 } from '@/lib/risk-assessment';
 import { z } from 'zod';
 import {
-  calculateConfidenceScore,
   ConfidenceScoringResult,
+  calculateConfidenceScore,
 } from './confidence-scoring';
 import { getContingencyRecommendation } from './contingency-recommendation';
 import {
-  analyzeMarketConditions,
   MarketAnalysisResult,
+  analyzeMarketConditions,
 } from './market-analysis';
 import { calculateRiskAdjustedProfitMargin } from './risk-adjusted-profit-margin';
 import { calculateSizeBasedOverhead } from './size-based-overhead';
@@ -625,6 +625,15 @@ export function clearOldAuditLogs(olderThanDays: number = 30): number {
   calculationAuditLogs.push(...filteredLogs);
 
   return initialLength - calculationAuditLogs.length;
+}
+
+/**
+ * Clear all audit logs (useful for testing)
+ */
+export function clearAllAuditLogs(): number {
+  const initialLength = calculationAuditLogs.length;
+  calculationAuditLogs.length = 0;
+  return initialLength;
 }
 
 /**

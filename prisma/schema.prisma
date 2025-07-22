@@ -51,6 +51,9 @@ model User {
   accounts Account[]
   sessions Session[]
   proposals Proposal[] // User can create multiple proposals
+  auditLogs AuditLog[] // User's audit trail
+  dataExports DataExport[] // User's data exports
+  dataImports DataImport[] // User's data imports
 
   @@map("users")
 }
@@ -317,4 +320,154 @@ enum MarketDataType {
   REGIONAL_MULTIPLIER
   SEASONAL_FACTOR
   COST_PER_SF // Added for explicit cost/SF benchmarking
+}
+
+// Audit Trail Models
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?     @map("user_id")
+  action      String      // CREATE, UPDATE, DELETE, EXPORT, IMPORT, etc.
+  entityType  String      // Proposal, User, RiskAssessment, etc.
+  entityId    String      @map("entity_id")
+  oldValues   Json?       // Previous state
+  newValues   Json?       // New state
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  metadata    Json?       // Additional context
+  timestamp   DateTime    @default(now())
+  
+  // Relationships
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("audit_logs")
+}
+
+// Data Export/Import Models
+model DataExport {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  exportType  ExportType
+  filters     Json?       // Export filters and criteria
+  filePath    String?     @map("file_path")
+  fileSize    Int?        @map("file_size")
+  recordCount Int         @map("record_count")
+  status      ExportStatus @default(PENDING)
+  errorMessage String?    @map("error_message")
+  expiresAt   DateTime?   @map("expires_at")
+  
+  // Relationships
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("data_exports")
+}
+
+model DataImport {
+  id          String      @id @default(cuid())
+  userId      String      @map("user_id")
+  importType  ImportType
+  fileName    String      @map("file_name")
+  filePath    String      @map("file_path")
+  fileSize    Int         @map("file_size")
+  recordCount Int         @map("record_count")
+  processedCount Int      @default(0) @map("processed_count")
+  errorCount  Int         @default(0) @map("error_count")
+  status      ImportStatus @default(PENDING)
+  errors      Json?       // Detailed error information
+  mapping     Json?       // Field mapping configuration
+  
+  // Relationships
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("data_imports")
+}
+
+// Backup and Recovery Models
+model DatabaseBackup {
+  id          String      @id @default(cuid())
+  backupType  BackupType
+  filePath    String      @map("file_path")
+  fileSize    Int         @map("file_size")
+  checksum    String      // For integrity verification
+  version     String      // Database version
+  status      BackupStatus @default(PENDING)
+  errorMessage String?    @map("error_message")
+  retentionUntil DateTime @map("retention_until")
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("database_backups")
+}
+
+// System Configuration Models
+model SystemConfig {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  value       String
+  description String?
+  isEncrypted Boolean     @default(false) @map("is_encrypted")
+  category    String      @default("general")
+  
+  // Metadata
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  @@map("system_configs")
+}
+
+// Enums for new models
+enum ExportType {
+  PROPOSALS
+  USERS
+  RISK_ASSESSMENTS
+  MARKET_DATA
+  AUDIT_LOGS
+  ALL_DATA
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum ImportType {
+  PROPOSALS
+  USERS
+  RISK_FACTORS
+  MARKET_DATA
+  CONTRACTORS
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum BackupType {
+  FULL
+  INCREMENTAL
+  DIFFERENTIAL
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  VERIFIED
 }

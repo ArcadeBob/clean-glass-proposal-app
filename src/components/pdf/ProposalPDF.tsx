@@ -3,111 +3,204 @@ import React from 'react';
 import { calculateProposalPrice } from '../../lib/calculations/proposal-calculations';
 import { ProposalFormData } from '../wizard/ProposalWizard';
 
-// Register fonts (optional - using default fonts for now)
-// Font.register({
-//   family: 'Open Sans',
-//   src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-400.ttf',
-// });
-
-// Create styles
+// Enhanced styles for professional appearance
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#ffffff',
     padding: 40,
-    fontSize: 12,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
   },
   header: {
     marginBottom: 30,
-    borderBottom: '2 solid #2563eb',
+    borderBottom: '3 solid #1e40af',
     paddingBottom: 20,
+    position: 'relative',
   },
-  companyName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 5,
+  logoSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 15,
   },
   companyInfo: {
-    fontSize: 10,
+    flex: 1,
+  },
+  companyName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  companyTagline: {
+    fontSize: 12,
     color: '#6b7280',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  companyDetails: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginBottom: 3,
+    lineHeight: 1.3,
+  },
+  proposalInfo: {
+    alignItems: 'flex-end',
+    textAlign: 'right',
+  },
+  proposalNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e40af',
     marginBottom: 5,
   },
+  proposalDate: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginBottom: 3,
+  },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 25,
     textAlign: 'center',
     color: '#1f2937',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    borderBottom: '2 solid #e5e7eb',
+    paddingBottom: 10,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 25,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#374151',
-    backgroundColor: '#f3f4f6',
-    padding: 8,
+    marginBottom: 12,
+    color: '#1e40af',
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    borderLeft: '4 solid #1e40af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     marginBottom: 8,
-    borderBottom: '1 solid #e5e7eb',
-    paddingBottom: 5,
+    borderBottom: '1 solid #f1f5f9',
+    paddingBottom: 8,
+    minHeight: 20,
   },
   label: {
-    width: '40%',
+    width: '35%',
     fontWeight: 'bold',
-    color: '#4b5563',
+    color: '#374151',
+    fontSize: 9,
   },
   value: {
-    width: '60%',
+    width: '65%',
     color: '#1f2937',
+    fontSize: 9,
   },
   pricingSection: {
     backgroundColor: '#f0fdf4',
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 10,
+    padding: 20,
+    borderRadius: 8,
+    marginTop: 15,
+    border: '2 solid #22c55e',
   },
   pricingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 8,
+    paddingVertical: 4,
   },
   pricingLabel: {
     color: '#166534',
     fontWeight: 'bold',
+    fontSize: 9,
   },
   pricingValue: {
     color: '#166534',
     fontWeight: 'bold',
+    fontSize: 9,
   },
   finalPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#166534',
     borderTop: '2 solid #22c55e',
-    paddingTop: 10,
-    marginTop: 10,
+    paddingTop: 12,
+    marginTop: 12,
   },
   notes: {
-    marginTop: 20,
-    padding: 15,
+    marginTop: 25,
+    padding: 20,
     backgroundColor: '#eff6ff',
-    borderRadius: 5,
+    borderRadius: 8,
+    border: '1 solid #3b82f6',
   },
   notesTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 10,
     color: '#1e40af',
+    textTransform: 'uppercase',
   },
   notesContent: {
     color: '#1e40af',
+    lineHeight: 1.5,
+    fontSize: 9,
+  },
+  termsSection: {
+    marginTop: 30,
+    padding: 20,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    border: '1 solid #f59e0b',
+  },
+  termsTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#92400e',
+    textTransform: 'uppercase',
+  },
+  termsContent: {
+    color: '#92400e',
     lineHeight: 1.4,
+    fontSize: 8,
+  },
+  signatureSection: {
+    marginTop: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  signatureBox: {
+    width: '45%',
+    borderTop: '1 solid #6b7280',
+    paddingTop: 10,
+    marginTop: 30,
+  },
+  signatureLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  signatureLine: {
+    borderBottom: '1 solid #6b7280',
+    height: 30,
+    marginBottom: 5,
+  },
+  signatureInfo: {
+    fontSize: 8,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   footer: {
     position: 'absolute',
@@ -115,10 +208,17 @@ const styles = StyleSheet.create({
     left: 40,
     right: 40,
     textAlign: 'center',
-    fontSize: 10,
+    fontSize: 8,
     color: '#6b7280',
     borderTop: '1 solid #e5e7eb',
     paddingTop: 10,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 15,
+    right: 40,
+    fontSize: 8,
+    color: '#6b7280',
   },
 });
 
@@ -183,14 +283,26 @@ export const ProposalPDF: React.FC<ProposalPDFProps> = ({ data }) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.companyName}>Clean Glass Proposals</Text>
-          <Text style={styles.companyInfo}>Professional Glazing Solutions</Text>
-          <Text style={styles.companyInfo}>
-            123 Glass Street, Glazing City, GC 12345
-          </Text>
-          <Text style={styles.companyInfo}>
-            Phone: (555) 123-4567 | Email: info@cleanglass.com
-          </Text>
+          <View style={styles.logoSection}>
+            <View style={styles.companyInfo}>
+              <Text style={styles.companyName}>Clean Glass Proposals</Text>
+              <Text style={styles.companyTagline}>
+                Professional Glazing Solutions
+              </Text>
+              <Text style={styles.companyDetails}>
+                123 Glass Street, Glazing City, GC 12345
+              </Text>
+              <Text style={styles.companyDetails}>
+                Phone: (555) 123-4567 | Email: info@cleanglass.com
+              </Text>
+            </View>
+            <View style={styles.proposalInfo}>
+              <Text style={styles.proposalNumber}>
+                Proposal: {data.projectName.substring(0, 5)}
+              </Text>
+              <Text style={styles.proposalDate}>{currentDate}</Text>
+            </View>
+          </View>
         </View>
 
         {/* Title */}
@@ -322,14 +434,37 @@ export const ProposalPDF: React.FC<ProposalPDFProps> = ({ data }) => {
           </View>
         )}
 
+        {/* Terms and Conditions */}
+        <View style={styles.termsSection}>
+          <Text style={styles.termsTitle}>Terms and Conditions</Text>
+          <Text style={styles.termsContent}>
+            This proposal is valid for 30 days from the date of issue. All
+            prices are subject to change without prior notice.
+          </Text>
+        </View>
+
+        {/* Signature Section */}
+        <View style={styles.signatureSection}>
+          <View style={styles.signatureBox}>
+            <Text style={styles.signatureLabel}>Accepted By:</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureInfo}>____________________</Text>
+            <Text style={styles.signatureInfo}>Date: {currentDate}</Text>
+          </View>
+          <View style={styles.signatureBox}>
+            <Text style={styles.signatureLabel}>Prepared By:</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureInfo}>____________________</Text>
+            <Text style={styles.signatureInfo}>Clean Glass Proposals</Text>
+          </View>
+        </View>
+
         {/* Footer */}
         <View style={styles.footer}>
           <Text>
-            This proposal is valid for 30 days from the date of issue.
-          </Text>
-          <Text>
             Thank you for considering Clean Glass Proposals for your project.
           </Text>
+          <Text>We look forward to working with you!</Text>
         </View>
       </Page>
     </Document>
