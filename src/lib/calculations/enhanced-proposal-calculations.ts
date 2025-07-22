@@ -4,11 +4,16 @@ import {
   RiskScoringResult,
 } from '@/lib/risk-assessment';
 import { z } from 'zod';
+import {
+  calculateConfidenceScore,
+  ConfidenceScoringResult,
+} from './confidence-scoring';
 import { getContingencyRecommendation } from './contingency-recommendation';
 import {
   analyzeMarketConditions,
   MarketAnalysisResult,
 } from './market-analysis';
+import { calculateRiskAdjustedProfitMargin } from './risk-adjusted-profit-margin';
 import { calculateSizeBasedOverhead } from './size-based-overhead';
 
 // Enhanced validation schemas
@@ -24,7 +29,7 @@ export const EnhancedProposalCalculationSchema = z.object({
   squareFootage: z.number().optional(),
   buildingHeight: z.number().optional(),
   region: z.string().optional(),
-  materialType: z.string().optional(), // <-- Add materialType
+  materialType: z.string().optional(),
   riskFactorInputs: z
     .record(
       z.object({
@@ -32,6 +37,23 @@ export const EnhancedProposalCalculationSchema = z.object({
         notes: z.string().optional(),
       })
     )
+    .optional(),
+  // Confidence scoring inputs
+  confidenceFactors: z
+    .object({
+      dataCompleteness: z.number().min(0).max(100).optional(),
+      dataAccuracy: z.number().min(0).max(100).optional(),
+      dataRecency: z.number().min(0).max(100).optional(),
+      historicalAccuracy: z.number().min(0).max(100).optional(),
+      estimateFrequency: z.number().min(0).max(100).optional(),
+      varianceFromHistorical: z.number().min(0).max(100).optional(),
+      scopeComplexity: z.number().min(0).max(100).optional(),
+      technicalUncertainty: z.number().min(0).max(100).optional(),
+      requirementClarity: z.number().min(0).max(100).optional(),
+      marketDataAge: z.number().min(0).max(100).optional(),
+      marketVolatility: z.number().min(0).max(100).optional(),
+      supplierReliability: z.number().min(0).max(100).optional(),
+    })
     .optional(),
   // Legacy support
   riskScore: z.number().min(0).max(10).optional(),
@@ -64,6 +86,21 @@ export interface EnhancedProposalCalculationResult {
   riskAdjustment: number;
   contingencyAmount: number;
   contingencyRate: number;
+
+  // Risk-adjusted profit margin results
+  isRiskAdjustedProfitMargin: boolean;
+  baseProfitMargin: number;
+  profitMarginAdjustment: number;
+  profitMarginExplanation: string;
+
+  // Confidence scoring results
+  confidenceAssessment: ConfidenceScoringResult | null;
+  isConfidenceScored: boolean;
+  uncertaintyRange: {
+    lowerBound: number;
+    upperBound: number;
+    multiplier: number;
+  };
 
   // Market analysis
   winProbability: number;
@@ -178,8 +215,27 @@ export async function calculateEnhancedProposalPricing(
 
   const costWithOverhead = baseCost + overheadAmount;
 
-  // Calculate profit margin
-  const profitAmount = (costWithOverhead * profitMargin) / 100;
+  // Calculate risk-adjusted profit margin
+  let actualProfitMargin = profitMargin;
+  let profitMarginAdjustment = 0;
+  let profitMarginExplanation = '';
+
+  if (riskAssessment) {
+    const riskAdjustedMargin = calculateRiskAdjustedProfitMargin({
+      baseProfitMargin: profitMargin,
+      riskAssessment,
+    });
+
+    actualProfitMargin = riskAdjustedMargin.adjustedProfitMargin;
+    profitMarginAdjustment = riskAdjustedMargin.marginAdjustment;
+    profitMarginExplanation = riskAdjustedMargin.explanation;
+
+    // Add warnings from risk-adjusted margin calculation
+    warnings.push(...riskAdjustedMargin.warnings);
+  }
+
+  // Calculate profit amount using adjusted margin
+  const profitAmount = (costWithOverhead * actualProfitMargin) / 100;
   const costWithProfit = costWithOverhead + profitAmount;
 
   // Apply risk adjustments
@@ -231,12 +287,46 @@ export async function calculateEnhancedProposalPricing(
     });
   }
 
+  // Confidence scoring integration
+  let confidenceAssessment: ConfidenceScoringResult | null = null;
+  let isConfidenceScored = false;
+  let uncertaintyRange = {
+    lowerBound: 10, // Default ±10%
+    upperBound: 10,
+    multiplier: 0.1,
+  };
+
+  if (input.confidenceFactors) {
+    try {
+      confidenceAssessment = calculateConfidenceScore({
+        factors: input.confidenceFactors,
+        riskAssessment: riskAssessment || undefined,
+      });
+
+      isConfidenceScored = true;
+      if (confidenceAssessment) {
+        uncertaintyRange = confidenceAssessment.uncertaintyRange;
+
+        // Add confidence warnings to main warnings
+        warnings.push(...confidenceAssessment.warnings);
+
+        // Update overall confidence based on confidence assessment
+        confidence = confidenceAssessment.confidenceScore / 100;
+      }
+    } catch (error) {
+      console.error('Error in confidence scoring:', error);
+      warnings.push(
+        'Confidence scoring failed, using default uncertainty range'
+      );
+    }
+  }
+
   return {
     baseCost,
     overheadAmount,
     overheadPercentage: actualOverheadPercentage,
     profitAmount,
-    profitMargin,
+    profitMargin: actualProfitMargin, // Return the adjusted profit margin
     totalCost,
     isSizeBasedOverhead,
     overheadTier,
@@ -245,6 +335,13 @@ export async function calculateEnhancedProposalPricing(
     riskAdjustment,
     contingencyAmount,
     contingencyRate,
+    isRiskAdjustedProfitMargin: riskAssessment !== null,
+    baseProfitMargin: profitMargin,
+    profitMarginAdjustment,
+    profitMarginExplanation,
+    confidenceAssessment,
+    isConfidenceScored,
+    uncertaintyRange,
     winProbability,
     costPerSquareFoot,
     calculationMethod,
