@@ -1,4 +1,6 @@
 import SignOutButton from '@/components/SignOutButton';
+import HistoricalReportDashboard from '@/components/dashboard/HistoricalReportDashboard';
+import MarketDataUpload from '@/components/dashboard/MarketDataUpload';
 import ProposalDashboard from '@/components/dashboard/ProposalDashboard';
 import RiskDashboardDemo from '@/components/dashboard/RiskDashboardDemo';
 import { auth } from '@/lib/auth';
@@ -37,6 +39,8 @@ export default async function DashboardPage() {
         <div className="px-4 py-6 sm:px-0 space-y-8">
           <ProposalDashboard userId={session.user.id} />
           <RiskDashboardDemo />
+          <MarketDataUpload />
+          <HistoricalReportDashboard />
         </div>
       </main>
     </div>

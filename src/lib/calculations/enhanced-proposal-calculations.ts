@@ -63,6 +63,32 @@ export type EnhancedProposalCalculationInput = z.infer<
   typeof EnhancedProposalCalculationSchema
 >;
 
+// Audit log interface for calculation tracking
+export interface CalculationAuditLog {
+  timestamp: Date;
+  calculationId: string;
+  input: EnhancedProposalCalculationInput;
+  result: EnhancedProposalCalculationResult;
+  executionTime: number;
+  warnings: string[];
+  errors: string[];
+  riskAssessmentUsed: boolean;
+  fallbackUsed: boolean;
+}
+
+// Enhanced error handling interface
+export interface CalculationError {
+  code:
+    | 'RISK_ASSESSMENT_FAILED'
+    | 'MARKET_ANALYSIS_FAILED'
+    | 'CONFIDENCE_SCORING_FAILED'
+    | 'VALIDATION_ERROR'
+    | 'DATABASE_ERROR';
+  message: string;
+  details?: any;
+  fallbackUsed: boolean;
+}
+
 export interface EnhancedProposalCalculationResult {
   // Basic calculation results
   baseCost: number;
@@ -110,16 +136,62 @@ export interface EnhancedProposalCalculationResult {
   calculationMethod: 'enhanced' | 'legacy';
   confidence: number;
   warnings: string[];
+
+  // Enhanced integration metadata
+  calculationId: string;
+  executionTime: number;
+  errors: CalculationError[];
+  auditTrail: {
+    riskAssessmentTimestamp?: Date;
+    marketAnalysisTimestamp?: Date;
+    confidenceScoringTimestamp?: Date;
+    calculationSequence: string[];
+  };
 }
 
-/**
- * Enhanced proposal calculation with integrated risk assessment
- */
+// Global audit log storage (in production, this would be a database)
+const calculationAuditLogs: CalculationAuditLog[] = [];
+
+// Generate unique calculation ID
+function generateCalculationId(): string {
+  return `calc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Enhanced error handling and validation
+function validateRiskFactorInputs(
+  riskFactorInputs: Record<string, { value: any; notes?: string }> | undefined
+): { isValid: boolean; errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!riskFactorInputs || Object.keys(riskFactorInputs).length === 0) {
+    warnings.push('No risk factor inputs provided, using legacy risk scoring');
+    return { isValid: false, errors, warnings };
+  }
+
+  // Validate each risk factor input
+  for (const [factorName, input] of Object.entries(riskFactorInputs)) {
+    if (input.value === undefined || input.value === null) {
+      warnings.push(
+        `Risk factor '${factorName}' has no value, will use default`
+      );
+    }
+  }
+
+  return { isValid: true, errors, warnings };
+}
+
+// Enhanced calculation pipeline with proper sequencing
 export async function calculateEnhancedProposalPricing(
   input: EnhancedProposalCalculationInput
 ): Promise<
   EnhancedProposalCalculationResult & { contingencyRecommendation?: any }
 > {
+  const startTime = Date.now();
+  const calculationId = generateCalculationId();
+  const errors: CalculationError[] = [];
+  const calculationSequence: string[] = [];
+
   const {
     baseCost,
     overheadPercentage,
@@ -130,7 +202,7 @@ export async function calculateEnhancedProposalPricing(
     squareFootage,
     buildingHeight,
     region,
-    materialType, // <-- Add materialType
+    materialType,
     riskFactorInputs,
     riskScore: legacyRiskScore,
   } = input;
@@ -144,9 +216,19 @@ export async function calculateEnhancedProposalPricing(
   let warnings: string[] = [];
   let calculationMethod: 'enhanced' | 'legacy' = 'legacy';
 
-  // Try to use enhanced risk assessment if inputs are provided
-  if (riskFactorInputs && Object.keys(riskFactorInputs).length > 0) {
+  // Step 1: Validate risk factor inputs
+  calculationSequence.push('risk_validation');
+  const riskValidation = validateRiskFactorInputs(riskFactorInputs);
+  warnings.push(...riskValidation.warnings);
+
+  // Step 2: Enhanced risk assessment (if inputs are valid)
+  if (
+    riskValidation.isValid &&
+    riskFactorInputs &&
+    Object.keys(riskFactorInputs).length > 0
+  ) {
     try {
+      calculationSequence.push('risk_assessment');
       const riskEngine = new RiskScoringEngine();
       await riskEngine.initialize();
 
@@ -163,28 +245,35 @@ export async function calculateEnhancedProposalPricing(
       // Use risk assessment results
       contingencyRate = riskAssessment.contingencyRate;
       contingencyAmount = baseCost * contingencyRate;
-      winProbability = Math.max(10, 100 - riskAssessment.totalRiskScore * 0.8); // 0.8% reduction per risk point
+      winProbability = Math.max(10, 100 - riskAssessment.totalRiskScore * 0.8);
       confidence = riskAssessment.confidence;
-      warnings = riskAssessment.warnings;
+      warnings.push(...riskAssessment.warnings);
       calculationMethod = 'enhanced';
     } catch (error) {
       console.error('Error in enhanced risk assessment:', error);
+      errors.push({
+        code: 'RISK_ASSESSMENT_FAILED',
+        message:
+          'Enhanced risk assessment failed, falling back to legacy method',
+        details: error,
+        fallbackUsed: true,
+      });
       warnings.push(
         'Enhanced risk assessment failed, falling back to legacy method'
       );
-      // Fall back to legacy method
     }
   }
 
-  // Fall back to legacy risk scoring if enhanced method failed or not available
+  // Step 3: Fall back to legacy risk scoring if enhanced method failed
   if (calculationMethod === 'legacy' && legacyRiskScore !== undefined) {
-    // Legacy risk adjustment (2% per risk point)
+    calculationSequence.push('legacy_risk_scoring');
     riskAdjustment = baseCost * (legacyRiskScore / 10) * 0.02;
-    winProbability = Math.max(10, 100 - legacyRiskScore * 8); // 8% reduction per risk point
+    winProbability = Math.max(10, 100 - legacyRiskScore * 8);
     confidence = 0.8; // Lower confidence for legacy method
   }
 
-  // Calculate overhead with size-based adjustment
+  // Step 4: Calculate overhead with size-based adjustment
+  calculationSequence.push('overhead_calculation');
   let overheadAmount: number;
   let actualOverheadPercentage: number;
   let isSizeBasedOverhead = false;
@@ -194,20 +283,18 @@ export async function calculateEnhancedProposalPricing(
   let overheadCalculationMethod: 'tiered' | 'smooth' | 'fixed' | undefined;
 
   if (useSizeBasedOverhead && baseCost > 0) {
-    // Use size-based overhead calculation
     const sizeBasedResult = calculateSizeBasedOverhead(
       baseCost,
-      baseCost, // Use baseCost as project size
+      baseCost,
       useSmoothScaling
     );
 
     overheadAmount = sizeBasedResult.overheadAmount;
-    actualOverheadPercentage = sizeBasedResult.overheadRate * 100; // Convert to percentage
+    actualOverheadPercentage = sizeBasedResult.overheadRate * 100;
     isSizeBasedOverhead = true;
     overheadTier = sizeBasedResult.tier;
     overheadCalculationMethod = sizeBasedResult.method;
   } else {
-    // Use fixed overhead percentage
     overheadAmount = (baseCost * overheadPercentage) / 100;
     actualOverheadPercentage = overheadPercentage;
     isSizeBasedOverhead = false;
@@ -215,62 +302,88 @@ export async function calculateEnhancedProposalPricing(
 
   const costWithOverhead = baseCost + overheadAmount;
 
-  // Calculate risk-adjusted profit margin
+  // Step 5: Calculate risk-adjusted profit margin
+  calculationSequence.push('profit_margin_calculation');
   let actualProfitMargin = profitMargin;
   let profitMarginAdjustment = 0;
   let profitMarginExplanation = '';
 
   if (riskAssessment) {
-    const riskAdjustedMargin = calculateRiskAdjustedProfitMargin({
-      baseProfitMargin: profitMargin,
-      riskAssessment,
-    });
+    try {
+      const riskAdjustedMargin = calculateRiskAdjustedProfitMargin({
+        baseProfitMargin: profitMargin,
+        riskAssessment,
+      });
 
-    actualProfitMargin = riskAdjustedMargin.adjustedProfitMargin;
-    profitMarginAdjustment = riskAdjustedMargin.marginAdjustment;
-    profitMarginExplanation = riskAdjustedMargin.explanation;
-
-    // Add warnings from risk-adjusted margin calculation
-    warnings.push(...riskAdjustedMargin.warnings);
+      actualProfitMargin = riskAdjustedMargin.adjustedProfitMargin;
+      profitMarginAdjustment = riskAdjustedMargin.marginAdjustment;
+      profitMarginExplanation = riskAdjustedMargin.explanation;
+      warnings.push(...riskAdjustedMargin.warnings);
+    } catch (error) {
+      console.error('Error in risk-adjusted profit margin calculation:', error);
+      errors.push({
+        code: 'VALIDATION_ERROR',
+        message:
+          'Risk-adjusted profit margin calculation failed, using base margin',
+        details: error,
+        fallbackUsed: true,
+      });
+      // Use base profit margin as fallback
+      actualProfitMargin = profitMargin;
+    }
   }
 
-  // Calculate profit amount using adjusted margin
+  // Step 6: Calculate profit amount using adjusted margin
   const profitAmount = (costWithOverhead * actualProfitMargin) / 100;
   const costWithProfit = costWithOverhead + profitAmount;
 
-  // Apply risk adjustments
+  // Step 7: Apply risk adjustments
   const totalCost = costWithProfit + riskAdjustment + contingencyAmount;
 
-  // Calculate cost per square foot if square footage is provided
+  // Step 8: Calculate cost per square foot
   let costPerSquareFoot = squareFootage ? totalCost / squareFootage : 0;
 
-  // Market analysis integration
+  // Step 9: Market analysis integration
+  calculationSequence.push('market_analysis');
   let marketAnalysis: MarketAnalysisResult | null = null;
   if (region && materialType) {
-    marketAnalysis = analyzeMarketConditions({
-      region,
-      materialType,
-      projectType,
-      squareFootage,
-    });
-    // Adjust winProbability and costPerSquareFoot based on market conditions
-    winProbability = Math.max(
-      10,
-      Math.min(
-        100,
-        winProbability - (10 - marketAnalysis.marketConditionScore) * 0.3
-      )
-    );
-    // Example: costPerSquareFoot increases with regional adjustment and material trend
-    costPerSquareFoot =
-      baseCost && squareFootage
-        ? (baseCost *
-            marketAnalysis.regionalAdjustment *
-            (1 + marketAnalysis.materialCostTrend)) /
-          squareFootage
-        : 0;
-    if (marketAnalysis.notes.length > 0) {
-      warnings.push(...marketAnalysis.notes);
+    try {
+      marketAnalysis = analyzeMarketConditions({
+        region,
+        materialType,
+        projectType,
+        squareFootage,
+      });
+
+      // Adjust winProbability and costPerSquareFoot based on market conditions
+      winProbability = Math.max(
+        10,
+        Math.min(
+          100,
+          winProbability - (10 - marketAnalysis.marketConditionScore) * 0.3
+        )
+      );
+
+      costPerSquareFoot =
+        baseCost && squareFootage
+          ? (baseCost *
+              marketAnalysis.regionalAdjustment *
+              (1 + marketAnalysis.materialCostTrend)) /
+            squareFootage
+          : 0;
+
+      if (marketAnalysis.notes.length > 0) {
+        warnings.push(...marketAnalysis.notes);
+      }
+    } catch (error) {
+      console.error('Error in market analysis:', error);
+      errors.push({
+        code: 'MARKET_ANALYSIS_FAILED',
+        message: 'Market analysis failed, using default values',
+        details: error,
+        fallbackUsed: true,
+      });
+      warnings.push('Market analysis failed, using default values');
     }
   } else {
     warnings.push(
@@ -278,20 +391,32 @@ export async function calculateEnhancedProposalPricing(
     );
   }
 
-  // Contingency recommendation integration
+  // Step 10: Contingency recommendation integration
+  calculationSequence.push('contingency_recommendation');
   let contingencyRecommendation = null;
   if (riskAssessment) {
-    contingencyRecommendation = getContingencyRecommendation({
-      riskAssessment,
-      marketAnalysis: marketAnalysis || undefined,
-    });
+    try {
+      contingencyRecommendation = getContingencyRecommendation({
+        riskAssessment,
+        marketAnalysis: marketAnalysis || undefined,
+      });
+    } catch (error) {
+      console.error('Error in contingency recommendation:', error);
+      errors.push({
+        code: 'VALIDATION_ERROR',
+        message: 'Contingency recommendation failed',
+        details: error,
+        fallbackUsed: true,
+      });
+    }
   }
 
-  // Confidence scoring integration
+  // Step 11: Confidence scoring integration
+  calculationSequence.push('confidence_scoring');
   let confidenceAssessment: ConfidenceScoringResult | null = null;
   let isConfidenceScored = false;
   let uncertaintyRange = {
-    lowerBound: 10, // Default ±10%
+    lowerBound: 10,
     upperBound: 10,
     multiplier: 0.1,
   };
@@ -306,27 +431,31 @@ export async function calculateEnhancedProposalPricing(
       isConfidenceScored = true;
       if (confidenceAssessment) {
         uncertaintyRange = confidenceAssessment.uncertaintyRange;
-
-        // Add confidence warnings to main warnings
         warnings.push(...confidenceAssessment.warnings);
-
-        // Update overall confidence based on confidence assessment
         confidence = confidenceAssessment.confidenceScore / 100;
       }
     } catch (error) {
       console.error('Error in confidence scoring:', error);
+      errors.push({
+        code: 'CONFIDENCE_SCORING_FAILED',
+        message: 'Confidence scoring failed, using default uncertainty range',
+        details: error,
+        fallbackUsed: true,
+      });
       warnings.push(
         'Confidence scoring failed, using default uncertainty range'
       );
     }
   }
 
-  return {
+  const executionTime = Date.now() - startTime;
+
+  const result: EnhancedProposalCalculationResult = {
     baseCost,
     overheadAmount,
     overheadPercentage: actualOverheadPercentage,
     profitAmount,
-    profitMargin: actualProfitMargin, // Return the adjusted profit margin
+    profitMargin: actualProfitMargin,
     totalCost,
     isSizeBasedOverhead,
     overheadTier,
@@ -347,8 +476,155 @@ export async function calculateEnhancedProposalPricing(
     calculationMethod,
     confidence,
     warnings,
+    calculationId,
+    executionTime,
+    errors,
+    auditTrail: {
+      riskAssessmentTimestamp: riskAssessment ? new Date() : undefined,
+      marketAnalysisTimestamp: marketAnalysis ? new Date() : undefined,
+      confidenceScoringTimestamp: confidenceAssessment ? new Date() : undefined,
+      calculationSequence,
+    },
+  };
+
+  // Log calculation for audit trail
+  const auditLog: CalculationAuditLog = {
+    timestamp: new Date(),
+    calculationId,
+    input,
+    result,
+    executionTime,
+    warnings,
+    errors: errors.map(e => e.message),
+    riskAssessmentUsed: riskAssessment !== null,
+    fallbackUsed: errors.some(e => e.fallbackUsed),
+  };
+
+  calculationAuditLogs.push(auditLog);
+
+  return {
+    ...result,
     contingencyRecommendation,
   };
+}
+
+/**
+ * Retrieve calculation audit logs for monitoring and debugging
+ */
+export function getCalculationAuditLogs(
+  options: {
+    limit?: number;
+    since?: Date;
+    calculationId?: string;
+    includeErrors?: boolean;
+  } = {}
+): CalculationAuditLog[] {
+  const { limit = 100, since, calculationId, includeErrors = true } = options;
+
+  let filteredLogs = [...calculationAuditLogs];
+
+  // Filter by calculation ID if provided
+  if (calculationId) {
+    filteredLogs = filteredLogs.filter(
+      log => log.calculationId === calculationId
+    );
+  }
+
+  // Filter by date if provided
+  if (since) {
+    filteredLogs = filteredLogs.filter(log => log.timestamp >= since);
+  }
+
+  // Filter by errors if requested
+  if (!includeErrors) {
+    filteredLogs = filteredLogs.filter(log => log.errors.length === 0);
+  }
+
+  // Sort by timestamp (newest first) and limit results
+  return filteredLogs
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .slice(0, limit);
+}
+
+/**
+ * Get calculation statistics for monitoring system performance
+ */
+export function getCalculationStatistics(): {
+  totalCalculations: number;
+  averageExecutionTime: number;
+  errorRate: number;
+  riskAssessmentUsageRate: number;
+  fallbackUsageRate: number;
+  recentErrors: string[];
+} {
+  if (calculationAuditLogs.length === 0) {
+    return {
+      totalCalculations: 0,
+      averageExecutionTime: 0,
+      errorRate: 0,
+      riskAssessmentUsageRate: 0,
+      fallbackUsageRate: 0,
+      recentErrors: [],
+    };
+  }
+
+  const totalCalculations = calculationAuditLogs.length;
+  const totalExecutionTime = calculationAuditLogs.reduce(
+    (sum, log) => sum + log.executionTime,
+    0
+  );
+  const averageExecutionTime = totalExecutionTime / totalCalculations;
+
+  const calculationsWithErrors = calculationAuditLogs.filter(
+    log => log.errors.length > 0
+  ).length;
+  const errorRate = (calculationsWithErrors / totalCalculations) * 100;
+
+  const calculationsWithRiskAssessment = calculationAuditLogs.filter(
+    log => log.riskAssessmentUsed
+  ).length;
+  const riskAssessmentUsageRate =
+    (calculationsWithRiskAssessment / totalCalculations) * 100;
+
+  const calculationsWithFallback = calculationAuditLogs.filter(
+    log => log.fallbackUsed
+  ).length;
+  const fallbackUsageRate =
+    (calculationsWithFallback / totalCalculations) * 100;
+
+  // Get recent errors (last 10 calculations with errors)
+  const recentErrors = calculationAuditLogs
+    .filter(log => log.errors.length > 0)
+    .slice(0, 10)
+    .flatMap(log => log.errors);
+
+  return {
+    totalCalculations,
+    averageExecutionTime,
+    errorRate,
+    riskAssessmentUsageRate,
+    fallbackUsageRate,
+    recentErrors,
+  };
+}
+
+/**
+ * Clear old audit logs to prevent memory issues
+ */
+export function clearOldAuditLogs(olderThanDays: number = 30): number {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+  const initialLength = calculationAuditLogs.length;
+  const filteredLogs = calculationAuditLogs.filter(
+    log => log.timestamp >= cutoffDate
+  );
+
+  // Clear the array and repopulate with filtered logs
+  calculationAuditLogs.length = 0;
+  calculationAuditLogs.push(...filteredLogs);
+
+  return initialLength - calculationAuditLogs.length;
 }
 
 /**

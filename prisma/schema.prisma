@@ -316,4 +316,5 @@ enum MarketDataType {
   ECONOMIC_INDICATOR
   REGIONAL_MULTIPLIER
   SEASONAL_FACTOR
+  COST_PER_SF // Added for explicit cost/SF benchmarking
 }
