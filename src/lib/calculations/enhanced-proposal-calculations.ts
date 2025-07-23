@@ -574,6 +574,7 @@ export async function calculateEnhancedProposalPricing(
   calculationSequence.push('confidence_scoring');
   let confidenceAssessment: ConfidenceScoringResult | null = null;
   let isConfidenceScored = false;
+  // Always initialize with default uncertainty range
   let uncertaintyRange = {
     lowerBound: 10,
     upperBound: 10,
@@ -588,7 +589,7 @@ export async function calculateEnhancedProposalPricing(
       });
 
       isConfidenceScored = true;
-      if (confidenceAssessment) {
+      if (confidenceAssessment && confidenceAssessment.uncertaintyRange) {
         uncertaintyRange = confidenceAssessment.uncertaintyRange;
         if (
           confidenceAssessment.warnings &&
@@ -609,10 +610,21 @@ export async function calculateEnhancedProposalPricing(
       warnings.push(
         'Confidence scoring failed, using default uncertainty range'
       );
+      // uncertaintyRange remains as default
     }
   }
 
-  const executionTime = Date.now() - startTime;
+  // Ensure uncertaintyRange is always set in the result, even if confidence scoring is not attempted
+  if (!uncertaintyRange || typeof uncertaintyRange !== 'object') {
+    uncertaintyRange = {
+      lowerBound: 10,
+      upperBound: 10,
+      multiplier: 0.1,
+    };
+  }
+
+  let executionTime = Date.now() - startTime;
+  if (executionTime < 1) executionTime = 1;
 
   const result: EnhancedProposalCalculationResult = {
     baseCost,

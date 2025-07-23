@@ -314,14 +314,71 @@ export class Logger {
     details: Record<string, any>,
     context?: LogContext
   ): void {
-    this.logger.info(
-      this.enrichLogEntry({
-        level: LogLevel.INFO,
-        message: `Business Operation: ${operation}`,
-        context: { ...context, ...details },
-        metadata: { type: 'business' },
-      })
-    );
+    this.info(`Business operation: ${operation}`, context, details);
+  }
+
+  // Measure execution time of a function
+  measure<T>(operation: string, fn: () => T, context?: LogContext): T {
+    const startTime = Date.now();
+    try {
+      const result = fn();
+      const duration = Date.now() - startTime;
+      this.performance(
+        {
+          operation,
+          duration,
+          success: true,
+        },
+        context
+      );
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.performance(
+        {
+          operation,
+          duration,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        context
+      );
+      throw error;
+    }
+  }
+
+  // Measure execution time of an async function
+  async measureAsync<T>(
+    operation: string,
+    fn: () => Promise<T>,
+    context?: LogContext
+  ): Promise<T> {
+    const startTime = Date.now();
+    try {
+      const result = await fn();
+      const duration = Date.now() - startTime;
+      this.performance(
+        {
+          operation,
+          duration,
+          success: true,
+        },
+        context
+      );
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.performance(
+        {
+          operation,
+          duration,
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        context
+      );
+      throw error;
+    }
   }
 
   // Create child logger with additional context

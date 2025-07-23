@@ -55,7 +55,8 @@ describe('Standardized API Response Format', () => {
         { id: '123' },
         'Operation completed successfully'
       );
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: true,
@@ -70,7 +71,8 @@ describe('Standardized API Response Format', () => {
         { id: '123', name: 'New Item' },
         'Item created successfully'
       );
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: true,
@@ -95,7 +97,8 @@ describe('Standardized API Response Format', () => {
         pagination,
         'Items retrieved'
       );
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: true,
@@ -111,7 +114,8 @@ describe('Standardized API Response Format', () => {
   describe('Error Responses', () => {
     it('should create an unauthorized response', async () => {
       const response = createUnauthorizedResponse();
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,
@@ -131,7 +135,8 @@ describe('Standardized API Response Format', () => {
         errors,
         'Validation failed'
       );
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,
@@ -149,7 +154,8 @@ describe('Standardized API Response Format', () => {
       };
 
       const response = createDatabaseErrorResponse(dbError);
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,
@@ -166,7 +172,8 @@ describe('Standardized API Response Format', () => {
       };
 
       const response = createDatabaseErrorResponse(dbError);
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,
@@ -178,7 +185,8 @@ describe('Standardized API Response Format', () => {
 
     it('should create an internal error response', async () => {
       const response = createInternalErrorResponse('Something went wrong');
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,
@@ -197,7 +205,8 @@ describe('Standardized API Response Format', () => {
       const result = schema.safeParse({ email: 'invalid', age: 15 });
       if (!result.success) {
         const response = createZodValidationErrorResponse(result.error);
-        const body = await response.json();
+        const bodyText = await response.text();
+        const body = JSON.parse(bodyText);
 
         expect(body).toEqual({
           success: false,
@@ -219,7 +228,8 @@ describe('Standardized API Response Format', () => {
   describe('Response Schema Validation', () => {
     it('should validate success response schema', async () => {
       const response = createSuccessResponse({ test: 'data' });
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
       const isValid = ApiResponseSchema.safeParse(body);
 
       expect(isValid.success).toBe(true);
@@ -227,7 +237,8 @@ describe('Standardized API Response Format', () => {
 
     it('should validate error response schema', async () => {
       const response = createUnauthorizedResponse();
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
       const isValid = ApiResponseSchema.safeParse(body);
 
       expect(isValid.success).toBe(true);
@@ -240,7 +251,8 @@ describe('Standardized API Response Format', () => {
         offset: 0,
         hasMore: false,
       });
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
       const isValid = PaginatedResponseSchema.safeParse(body);
 
       expect(isValid.success).toBe(true);
@@ -261,7 +273,8 @@ describe('Standardized API Response Format', () => {
     it('should include request ID in error responses', async () => {
       const requestId = 'req_1234567890_abc123';
       const response = createUnauthorizedResponse('Custom message', requestId);
-      const body = await response.json();
+      const bodyText = await response.text();
+      const body = JSON.parse(bodyText);
 
       expect(body).toEqual({
         success: false,

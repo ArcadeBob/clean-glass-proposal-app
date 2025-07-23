@@ -265,6 +265,8 @@ describe('Enhanced Calculation Engine Integration Tests', () => {
       // The system should provide at least one warning (e.g., about missing input or confidence scoring)
       expect(result.warnings.length).toBeGreaterThanOrEqual(0);
       expect(result.uncertaintyRange).toBeDefined();
+      expect(result.uncertaintyRange.lowerBound).toBeDefined();
+      expect(result.uncertaintyRange.upperBound).toBeDefined();
     });
   });
 

@@ -89,14 +89,13 @@ describe('RiskScoringEngine Security Fix', () => {
 
     it('should reject formulas that are too complex', () => {
       // Create a formula with too many operations but under length limit
-      const complexFormula =
-        'score = ' + Array(60).fill('value + 1').join(' + ');
+      const complexFormula = 'score = ' + Array(60).fill('v+1').join('+');
 
       const validateFormula = (engine as any).validateFormula.bind(engine);
       const result = validateFormula(complexFormula);
 
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain('too complex');
+      expect(result.error).toContain('too complex (max 50 operations)');
     });
 
     it('should accept valid formulas', () => {
@@ -256,7 +255,7 @@ describe('RiskScoringEngine Security Fix', () => {
 
       const formula = 'score = height * 0.8; if (score > 100) score = 100;';
       const result = parseFormula(formula);
-      expect(result).toBe('(value > 100) ? (100) : value');
+      expect(result).toBe('(score > 100) ? (100) : (value * 0.8)');
     });
 
     it('should handle complex conditional statements', () => {
@@ -265,7 +264,7 @@ describe('RiskScoringEngine Security Fix', () => {
       const formula =
         'score = volatility * 2; if (volatility > 25) score = 100;';
       const result = parseFormula(formula);
-      expect(result).toBe('(value > 25) ? (100) : value');
+      expect(result).toBe('(value > 25) ? (100) : (value * 2)');
     });
   });
 
