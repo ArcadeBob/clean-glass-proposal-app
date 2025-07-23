@@ -17,7 +17,7 @@ describe('Performance Optimization', () => {
     });
 
     afterEach(() => {
-      cache.clear();
+      cache.destroy();
     });
 
     test('should store and retrieve values', () => {
@@ -25,8 +25,8 @@ describe('Performance Optimization', () => {
       expect(cache.get('test-key')).toBe('test-value');
     });
 
-    test('should return null for non-existent keys', () => {
-      expect(cache.get('non-existent')).toBeNull();
+    test('should return undefined for non-existent keys', () => {
+      expect(cache.get('non-existent')).toBeUndefined();
     });
 
     test('should expire values after TTL', async () => {
@@ -34,22 +34,17 @@ describe('Performance Optimization', () => {
       expect(cache.get('expire-test')).toBe('value');
 
       await new Promise(resolve => setTimeout(resolve, 100));
-      expect(cache.get('expire-test')).toBeNull();
+      expect(cache.get('expire-test')).toBeUndefined();
     });
 
     test('should evict oldest items when cache is full', () => {
       // Fill cache to capacity
-      cache.set('key1', 'value1');
-      cache.set('key2', 'value2');
-      cache.set('key3', 'value3');
-      cache.set('key4', 'value4');
-      cache.set('key5', 'value5');
-
-      // Add one more item
-      cache.set('key6', 'value6');
+      for (let i = 1; i <= 6; i++) {
+        cache.set(`key${i}`, `value${i}`);
+      }
 
       // Oldest item should be evicted
-      expect(cache.get('key1')).toBeNull();
+      expect(cache.get('key1')).toBeUndefined();
       expect(cache.get('key6')).toBe('value6');
     });
 
@@ -81,7 +76,7 @@ describe('Performance Optimization', () => {
 
       const deletedCount = cache.deletePattern('user:');
       expect(deletedCount).toBe(2);
-      expect(cache.get('user:1')).toBeNull();
+      expect(cache.get('user:1')).toBeUndefined();
       expect(cache.get('proposal:1')).toBe('proposal1');
     });
 
@@ -98,15 +93,41 @@ describe('Performance Optimization', () => {
 
     test('should support batch operations', () => {
       const items = [
-        { key: 'key1', value: 'value1' },
-        { key: 'key2', value: 'value2' },
-        { key: 'key3', value: 'value3' },
+        { key: 'batch1', value: 'value1' },
+        { key: 'batch2', value: 'value2' },
+        { key: 'batch3', value: 'value3' },
       ];
 
       cache.mset(items);
 
-      const results = cache.mget(['key1', 'key2', 'key3']);
-      expect(results).toEqual(['value1', 'value2', 'value3']);
+      expect(cache.get('batch1')).toBe('value1');
+      expect(cache.get('batch2')).toBe('value2');
+      expect(cache.get('batch3')).toBe('value3');
+    });
+
+    test('should properly destroy cache and clean up resources', () => {
+      // Add some data to the cache
+      cache.set('test-key', 'test-value');
+      expect(cache.get('test-key')).toBe('test-value');
+
+      // Mock the clearInterval function to verify it's called
+      const originalClearInterval = global.clearInterval;
+      const mockClearInterval = jest.fn();
+      global.clearInterval = mockClearInterval;
+
+      try {
+        // Destroy the cache
+        cache.destroy();
+
+        // Verify clearInterval was called
+        expect(mockClearInterval).toHaveBeenCalled();
+
+        // Verify cache is cleared
+        expect(cache.get('test-key')).toBeUndefined();
+      } finally {
+        // Restore original clearInterval
+        global.clearInterval = originalClearInterval;
+      }
     });
   });
 
@@ -242,15 +263,17 @@ describe('Performance Optimization', () => {
       expect(cached).toEqual(userData);
     });
 
-    test('should cache market data with longest TTL', () => {
+    test('should cache market data', () => {
       const marketData = {
         region: 'West Coast',
-        materialType: 'Glass',
+        materialType: 'glass',
         costPerSF: 25.5,
       };
 
       marketDataCache.set('market:west-coast:glass', marketData);
-      const cached = marketDataCache.get('market:west-coast:glass');
+      const cached = marketDataCache.get<typeof marketData>(
+        'market:west-coast:glass'
+      );
 
       expect(cached).toEqual(marketData);
     });
@@ -272,7 +295,7 @@ describe('Performance Optimization', () => {
       const cacheKey = `calc:${JSON.stringify(calculationParams)}`;
       calculationCache.set(cacheKey, result);
 
-      const cached = calculationCache.get(cacheKey);
+      const cached = calculationCache.get<typeof result>(cacheKey);
       expect(cached).toEqual(result);
     });
   });
@@ -300,11 +323,11 @@ describe('Performance Optimization', () => {
       };
 
       proposalCache.set('complex:prop-1', complexData);
-      const cached = proposalCache.get('complex:prop-1');
+      const cached = proposalCache.get<typeof complexData>('complex:prop-1');
 
       expect(cached).toEqual(complexData);
-      expect(cached.proposal.items).toHaveLength(2);
-      expect(cached.proposal.calculations.total).toBe(3375);
+      expect(cached?.proposal.items).toHaveLength(2);
+      expect(cached?.proposal.calculations.total).toBe(3375);
     });
 
     test('should handle cache invalidation patterns', () => {
@@ -316,9 +339,9 @@ describe('Performance Optimization', () => {
       // Invalidate all proposals
       const deletedCount = proposalCache.deletePattern('proposal:');
       expect(deletedCount).toBe(2);
-      expect(proposalCache.get('proposal:1')).toBeNull();
-      expect(proposalCache.get('proposal:2')).toBeNull();
-      expect(userCache.get('user:1')).not.toBeNull(); // User cache unaffected
+      expect(proposalCache.get('proposal:1')).toBeUndefined();
+      expect(proposalCache.get('proposal:2')).toBeUndefined();
+      expect(userCache.get('user:1')).not.toBeUndefined(); // User cache unaffected
     });
 
     test('should handle concurrent access', async () => {

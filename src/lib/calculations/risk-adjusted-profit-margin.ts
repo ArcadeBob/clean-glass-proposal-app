@@ -120,10 +120,22 @@ export function calculateRiskAdjustedProfitMargin(
   // 1. Apply risk level adjustment
   const riskLevelConfig =
     finalConfig.riskAdjustmentFactors[riskAssessment.riskLevel];
-  const riskLevelMultiplier = riskLevelConfig.multiplier;
-  const riskLevelAdjustment = baseProfitMargin * (riskLevelMultiplier - 1);
-  adjustedMargin += riskLevelAdjustment;
-  adjustmentFactors.riskLevelAdjustment = riskLevelAdjustment;
+
+  if (!riskLevelConfig) {
+    warnings.push(
+      `Unknown risk level '${riskAssessment.riskLevel}', using MEDIUM risk level`
+    );
+    const mediumConfig = finalConfig.riskAdjustmentFactors.MEDIUM;
+    const riskLevelMultiplier = mediumConfig.multiplier;
+    const riskLevelAdjustment = baseProfitMargin * (riskLevelMultiplier - 1);
+    adjustedMargin += riskLevelAdjustment;
+    adjustmentFactors.riskLevelAdjustment = riskLevelAdjustment;
+  } else {
+    const riskLevelMultiplier = riskLevelConfig.multiplier;
+    const riskLevelAdjustment = baseProfitMargin * (riskLevelMultiplier - 1);
+    adjustedMargin += riskLevelAdjustment;
+    adjustmentFactors.riskLevelAdjustment = riskLevelAdjustment;
+  }
 
   // 2. Apply technical complexity adjustment
   const technicalComplexityScore = getTechnicalComplexityScore(riskAssessment);

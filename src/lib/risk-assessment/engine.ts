@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import * as math from 'mathjs';
 import {
   DataType,
   RiskCategoryConfig,
@@ -325,7 +326,7 @@ export class RiskScoringEngine {
   }
 
   /**
-   * Formula-based scoring using custom JavaScript expressions
+   * Formula-based scoring using safe mathematical expressions
    */
   private calculateFormulaScore(factor: RiskFactorConfig, value: any): number {
     if (!factor.formula) {
@@ -333,26 +334,322 @@ export class RiskScoringEngine {
     }
 
     try {
-      // Create a safe evaluation context
-      const context = {
-        value,
-        minValue: factor.minValue || 0,
-        maxValue: factor.maxValue || 100,
+      // Validate formula complexity and security
+      const validation = this.validateFormula(factor.formula);
+      if (!validation.isValid) {
+        console.error(
+          `Invalid formula for ${factor.name}: ${validation.error}`
+        );
+        return 50;
+      }
+
+      // Create a safe evaluation context with only allowed variables
+      const scope = {
+        value: Number(value) || 0,
+        minValue: Number(factor.minValue) || 0,
+        maxValue: Number(factor.maxValue) || 100,
         score: 0,
+        // Add common mathematical functions that might be needed
+        abs: Math.abs,
+        min: Math.min,
+        max: Math.max,
+        pow: Math.pow,
+        sqrt: Math.sqrt,
+        round: Math.round,
+        floor: Math.floor,
+        ceil: Math.ceil,
+        // Add Math object for formulas that use Math.function()
+        Math: {
+          abs: Math.abs,
+          min: Math.min,
+          max: Math.max,
+          pow: Math.pow,
+          sqrt: Math.sqrt,
+          round: Math.round,
+          floor: Math.floor,
+          ceil: Math.ceil,
+        },
       };
 
-      // Execute the formula with the context
-      const formula = factor.formula.replace(
-        /score\s*=\s*/,
-        'context.score = '
-      );
-      eval(formula);
+      // Parse and evaluate the formula safely
+      const parsedFormula = this.parseFormula(factor.formula);
+      const result = math.evaluate(parsedFormula, scope);
 
-      return Math.max(0, Math.min(100, context.score));
+      // Ensure result is a valid number and within bounds
+      const score = Number(result);
+      if (isNaN(score) || !isFinite(score)) {
+        console.error(`Invalid result for formula ${factor.name}: ${result}`);
+        return 50;
+      }
+
+      return Math.max(0, Math.min(100, score));
     } catch (error) {
       console.error(`Error evaluating formula for ${factor.name}:`, error);
       return 50;
     }
+  }
+
+  /**
+   * Validate formula for security and complexity
+   */
+  private validateFormula(formula: string): {
+    isValid: boolean;
+    error?: string;
+  } {
+    // Check formula length
+    if (formula.length > 500) {
+      return { isValid: false, error: 'Formula too long (max 500 characters)' };
+    }
+
+    // Check for dangerous patterns
+    const dangerousPatterns = [
+      /eval\s*\(/i,
+      /Function\s*\(/i,
+      /setTimeout\s*\(/i,
+      /setInterval\s*\(/i,
+      /require\s*\(/i,
+      /import\s*\(/i,
+      /process\./i,
+      /global\./i,
+      /window\./i,
+      /document\./i,
+      /localStorage\./i,
+      /sessionStorage\./i,
+      /fetch\s*\(/i,
+      /XMLHttpRequest/i,
+      /fetch\s*\(/i,
+      /\.\s*constructor/i,
+      /__proto__/i,
+      /prototype/i,
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(formula)) {
+        return {
+          isValid: false,
+          error: `Formula contains forbidden pattern: ${pattern.source}`,
+        };
+      }
+    }
+
+    // Check for excessive complexity (too many operations) - only if length check passes
+    const operationCount = (formula.match(/[\+\-\*\/\^\(\)]/g) || []).length;
+    if (operationCount > 50) {
+      return {
+        isValid: false,
+        error: 'Formula too complex (max 50 operations)',
+      };
+    }
+
+    // Validate basic syntax
+    try {
+      // Test if mathjs can parse the formula with variable substitution
+      const testScope = {
+        value: 1,
+        minValue: 0,
+        maxValue: 100,
+        score: 0,
+        // Add common mathematical functions that might be needed
+        abs: Math.abs,
+        min: Math.min,
+        max: Math.max,
+        pow: Math.pow,
+        sqrt: Math.sqrt,
+        round: Math.round,
+        floor: Math.floor,
+        ceil: Math.ceil,
+        // Add Math object for formulas that use Math.function()
+        Math: {
+          abs: Math.abs,
+          min: Math.min,
+          max: Math.max,
+          pow: Math.pow,
+          sqrt: Math.sqrt,
+          round: Math.round,
+          floor: Math.floor,
+          ceil: Math.ceil,
+        },
+      };
+      const parsedFormula = this.parseFormula(formula);
+      math.evaluate(parsedFormula, testScope);
+    } catch (error) {
+      return { isValid: false, error: `Invalid formula syntax: ${error}` };
+    }
+
+    return { isValid: true };
+  }
+
+  /**
+   * Parse and sanitize formula for safe evaluation
+   */
+  private parseFormula(formula: string): string {
+    // Remove any potential assignment syntax and extract the expression
+    let parsedFormula = formula.trim();
+
+    // Handle common assignment patterns
+    if (parsedFormula.includes('score =')) {
+      // Extract the expression after 'score ='
+      const match = parsedFormula.match(/score\s*=\s*(.+)/);
+      if (match) {
+        parsedFormula = match[1].trim();
+      }
+    } else if (parsedFormula.startsWith('score=')) {
+      // Handle case without spaces
+      parsedFormula = parsedFormula.replace(/^score=/, '');
+    }
+
+    // Remove semicolons and multiple statements
+    parsedFormula = parsedFormula.split(';')[0].trim();
+
+    // Handle conditional statements (if statements) - check the original formula
+    if (formula.includes('if')) {
+      parsedFormula = this.parseConditionalFormula(formula);
+    } else {
+      // Replace variable names with 'value' for consistency
+      parsedFormula = this.substituteVariables(parsedFormula);
+    }
+
+    return parsedFormula;
+  }
+
+  /**
+   * Substitute variable names with 'value' for consistency
+   */
+  private substituteVariables(formula: string): string {
+    // Common variable names that should be replaced with 'value'
+    const variableMappings = {
+      height: 'value',
+      volatility: 'value',
+      fluctuation: 'value',
+      price: 'value',
+      cost: 'value',
+      rate: 'value',
+      percentage: 'value',
+      amount: 'value',
+      quantity: 'value',
+      size: 'value',
+      length: 'value',
+      width: 'value',
+      area: 'value',
+      volume: 'value',
+      weight: 'value',
+      mass: 'value',
+      temperature: 'value',
+      pressure: 'value',
+      speed: 'value',
+      velocity: 'value',
+      acceleration: 'value',
+      force: 'value',
+      energy: 'value',
+      power: 'value',
+      frequency: 'value',
+      wavelength: 'value',
+      amplitude: 'value',
+      phase: 'value',
+      angle: 'value',
+      distance: 'value',
+      time: 'value',
+      duration: 'value',
+      period: 'value',
+      interval: 'value',
+      delay: 'value',
+      latency: 'value',
+      throughput: 'value',
+      capacity: 'value',
+      efficiency: 'value',
+      ratio: 'value',
+      proportion: 'value',
+      fraction: 'value',
+      decimal: 'value',
+      integer: 'value',
+      number: 'value',
+      digit: 'value',
+      count: 'value',
+      index: 'value',
+      position: 'value',
+      location: 'value',
+      coordinate: 'value',
+      point: 'value',
+      vector: 'value',
+      matrix: 'value',
+      array: 'value',
+      list: 'value',
+      set: 'value',
+      map: 'value',
+      object: 'value',
+      property: 'value',
+      attribute: 'value',
+      field: 'value',
+      column: 'value',
+      row: 'value',
+      cell: 'value',
+      element: 'value',
+      item: 'value',
+      entry: 'value',
+      record: 'value',
+      tuple: 'value',
+      pair: 'value',
+      couple: 'value',
+      duo: 'value',
+      triple: 'value',
+      quad: 'value',
+      quint: 'value',
+      sextet: 'value',
+      septet: 'value',
+      octet: 'value',
+      nonet: 'value',
+      decet: 'value',
+    };
+
+    let substitutedFormula = formula;
+
+    // Replace variable names with 'value'
+    for (const [variableName, replacement] of Object.entries(
+      variableMappings
+    )) {
+      // Use word boundaries to avoid partial matches
+      const regex = new RegExp(`\\b${variableName}\\b`, 'g');
+      substitutedFormula = substitutedFormula.replace(regex, replacement);
+    }
+
+    return substitutedFormula;
+  }
+
+  /**
+   * Parse conditional formulas (if statements)
+   */
+  private parseConditionalFormula(formula: string): string {
+    // Handle simple if statements like: if (score > 100) score = 100;
+    const ifMatch = formula.match(/if\s*\(([^)]+)\)\s*([^;]+)/);
+    if (ifMatch) {
+      const condition = ifMatch[1].trim();
+      const action = ifMatch[2].trim();
+
+      // Convert to ternary operator for mathjs
+      if (action.includes('score =')) {
+        const valueMatch = action.match(/score\s*=\s*(.+)/);
+        if (valueMatch) {
+          const value = valueMatch[1].trim();
+          // Replace condition variables with safe equivalents
+          const safeCondition = this.substituteVariables(condition);
+          const safeValue = this.substituteVariables(value);
+
+          // Extract the base expression from the original formula
+          const baseMatch = formula.match(/score\s*=\s*([^;]+)/);
+          if (baseMatch) {
+            const baseExpression = this.substituteVariables(
+              baseMatch[1].trim()
+            );
+            return `(${safeCondition}) ? (${safeValue}) : (${baseExpression})`;
+          }
+
+          return `(${safeCondition}) ? (${safeValue}) : value`;
+        }
+      }
+    }
+
+    // If we can't parse the conditional, return a safe fallback
+    return 'value';
   }
 
   /**

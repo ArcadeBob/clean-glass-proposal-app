@@ -1,53 +1,37 @@
-'use client'
+'use client';
 
-import { ErrorInfo } from 'react'
-import { ErrorBoundary } from './ErrorBoundary'
+import { ErrorInfo } from 'react';
+import { ErrorBoundary } from './ErrorBoundary';
+
+import { logger } from '@/lib/logger';
+import { errorTracking } from '@/lib/sentry';
 
 // Global error handler for the entire application
 const globalErrorHandler = (error: Error, errorInfo: ErrorInfo) => {
-  // Log error to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.group('🚨 Global Error Boundary')
-    console.error('Error:', error)
-    console.error('Component Stack:', errorInfo.componentStack)
-    console.groupEnd()
+  // Log error with structured logging
+  logger.error('Global Error Boundary caught an error', error, {
+    component: 'GlobalErrorBoundary',
+    componentStack: errorInfo.componentStack,
+    url: typeof window !== 'undefined' ? window.location.href : undefined,
+    userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
+  });
+
+  // Send to Sentry in production
+  if (process.env.NODE_ENV === 'production') {
+    errorTracking.captureException(error, {
+      component: 'GlobalErrorBoundary',
+      componentStack: errorInfo.componentStack,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+      userAgent:
+        typeof window !== 'undefined' ? navigator.userAgent : undefined,
+    });
   }
-
-  // In production, you would send this to an error reporting service
-  // Example with Sentry:
-  // if (process.env.NODE_ENV === 'production') {
-  //   Sentry.captureException(error, {
-  //     extra: {
-  //       componentStack: errorInfo.componentStack,
-  //       url: window.location.href,
-  //       userAgent: navigator.userAgent,
-  //     },
-  //   })
-  // }
-
-  // You could also send to your own error tracking service
-  // Example:
-  // fetch('/api/error-log', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     error: error.message,
-  //     stack: error.stack,
-  //     componentStack: errorInfo.componentStack,
-  //     url: window.location.href,
-  //     timestamp: new Date().toISOString(),
-  //   }),
-  // }).catch(console.error)
-}
+};
 
 interface GlobalErrorBoundaryProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export function GlobalErrorBoundary({ children }: GlobalErrorBoundaryProps) {
-  return (
-    <ErrorBoundary onError={globalErrorHandler}>
-      {children}
-    </ErrorBoundary>
-  )
-} 
+  return <ErrorBoundary onError={globalErrorHandler}>{children}</ErrorBoundary>;
+}

@@ -1,8 +1,11 @@
-import { useCallback } from 'react'
+import { logger } from '@/lib/logger';
+import { errorTracking } from '@/lib/sentry';
+import { useCallback } from 'react';
 
 interface ErrorHandlerOptions {
-  onError?: (error: Error) => void
-  logToConsole?: boolean
+  onError?: (error: Error) => void;
+  logToConsole?: boolean;
+  component?: string;
 }
 
 /**
@@ -10,63 +13,69 @@ interface ErrorHandlerOptions {
  * Provides a way to catch and handle errors gracefully
  */
 export function useErrorHandler(options: ErrorHandlerOptions = {}) {
-  const { onError, logToConsole = true } = options
+  const { onError, logToConsole = true, component } = options;
 
-  const handleError = useCallback((error: Error) => {
-    // Log to console in development
-    if (logToConsole && process.env.NODE_ENV === 'development') {
-      console.error('🚨 Component Error:', error)
-    }
+  const handleError = useCallback(
+    (error: Error) => {
+      // Log error with structured logging
+      logger.error('Component Error', error, {
+        component: component || 'useErrorHandler',
+        logToConsole,
+      });
 
-    // Call custom error handler
-    onError?.(error)
+      // Call custom error handler
+      onError?.(error);
 
-    // In production, you might want to send this to an error reporting service
-    // Example with Sentry:
-    // if (process.env.NODE_ENV === 'production') {
-    //   Sentry.captureException(error, {
-    //     tags: {
-    //       component: 'useErrorHandler',
-    //     },
-    //   })
-    // }
-  }, [onError, logToConsole])
+      // Send to Sentry in production
+      if (process.env.NODE_ENV === 'production') {
+        errorTracking.captureException(error, {
+          component: component || 'useErrorHandler',
+          source: 'hook',
+        });
+      }
+    },
+    [onError, logToConsole, component]
+  );
 
-  const handleAsyncError = useCallback(async <T>(
-    asyncFn: () => Promise<T>
-  ): Promise<T | null> => {
-    try {
-      return await asyncFn()
-    } catch (error) {
-      handleError(error instanceof Error ? error : new Error(String(error)))
-      return null
-    }
-  }, [handleError])
+  const handleAsyncError = useCallback(
+    async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await asyncFn();
+      } catch (error) {
+        handleError(error instanceof Error ? error : new Error(String(error)));
+        return null;
+      }
+    },
+    [handleError]
+  );
 
   return {
     handleError,
     handleAsyncError,
-  }
+  };
 }
 
 /**
  * Hook for wrapping async operations with error handling
  */
 export function useAsyncErrorHandler() {
-  const { handleError } = useErrorHandler()
+  const { handleError } = useErrorHandler();
 
-  const withErrorHandling = useCallback(<T extends any[], R>(
-    asyncFn: (...args: T) => Promise<R>
-  ) => {
-    return async (...args: T): Promise<R | null> => {
-      try {
-        return await asyncFn(...args)
-      } catch (error) {
-        handleError(error instanceof Error ? error : new Error(String(error)))
-        return null
-      }
-    }
-  }, [handleError])
+  const withErrorHandling = useCallback(
+    <T extends any[], R>(asyncFn: (...args: T) => Promise<R>) => {
+      return async (...args: T): Promise<R | null> => {
+        try {
+          return await asyncFn(...args);
+        } catch (error) {
+          handleError(
+            error instanceof Error ? error : new Error(String(error))
+          );
+          return null;
+        }
+      };
+    },
+    [handleError]
+  );
 
-  return { withErrorHandling }
-} 
+  return { withErrorHandling };
+}

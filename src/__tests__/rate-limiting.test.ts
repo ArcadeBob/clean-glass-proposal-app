@@ -20,7 +20,7 @@ describe('Rate Limiting System', () => {
   });
 
   afterEach(() => {
-    testCache.clear();
+    testCache.destroy();
   });
 
   describe('RateLimiterCore Class', () => {

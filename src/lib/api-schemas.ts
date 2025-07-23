@@ -239,7 +239,10 @@ export const ProposalItemResponseSchema = z.object({
   updatedAt: z.date(),
 });
 
-// Error response schema
+// Import standardized response schemas
+export { ApiResponseSchema, PaginatedResponseSchema } from './api-response';
+
+// Legacy schemas for backward compatibility
 export const ErrorResponseSchema = z.object({
   message: z.string(),
   errors: z
@@ -252,13 +255,13 @@ export const ErrorResponseSchema = z.object({
     .optional(),
 });
 
-// Success response schemas
 export const SuccessResponseSchema = z.object({
   message: z.string(),
   data: z.any().optional(),
 });
 
-export const PaginatedResponseSchema = z.object({
+// Legacy paginated schema
+export const LegacyPaginatedResponseSchema = z.object({
   data: z.array(z.any()),
   pagination: z.object({
     total: z.number(),

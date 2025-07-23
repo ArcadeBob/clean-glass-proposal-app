@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { calculateEnhancedProposalPrice } from '../../../lib/calculations/enhanced-proposal-calculations';
+import {
+  sanitizeNumber,
+  sanitizeText,
+  sanitizeTextarea,
+} from '../../../lib/input-sanitization';
 import { ProposalFormData } from '../ProposalWizard';
 
 interface RiskFactor {
@@ -140,9 +145,48 @@ export default function EnhancedPricingStep() {
     value: any,
     notes?: string
   ) => {
+    // Sanitize the factor name
+    const sanitizedFactorName = factorName.trim();
+    if (!sanitizedFactorName) {
+      console.warn('Invalid factor name provided');
+      return;
+    }
+
+    // Sanitize the value based on its type
+    let sanitizedValue = value;
+    if (typeof value === 'string') {
+      // Use the sanitization utility for string values
+      const { sanitized } = sanitizeText(value, {
+        maxLength: 1000,
+        allowHtml: false,
+        allowNewlines: false,
+      });
+      sanitizedValue = sanitized;
+    } else if (typeof value === 'number') {
+      // Validate numeric values
+      const { sanitized } = sanitizeNumber(value, {
+        min: 0,
+        max: 1000,
+        allowDecimals: true,
+        allowNegative: false,
+      });
+      sanitizedValue = sanitized;
+    }
+
+    // Sanitize notes if provided
+    let sanitizedNotes = notes;
+    if (notes !== undefined) {
+      const { sanitized } = sanitizeTextarea(notes, {
+        maxLength: 2000,
+        allowHtml: false,
+        allowUrls: true,
+      });
+      sanitizedNotes = sanitized;
+    }
+
     setRiskFactorInputs(prev => ({
       ...prev,
-      [factorName]: { value, notes },
+      [sanitizedFactorName]: { value: sanitizedValue, notes: sanitizedNotes },
     }));
   };
 
@@ -401,13 +445,18 @@ export default function EnhancedPricingStep() {
                   <textarea
                     placeholder="Additional notes..."
                     value={riskFactorInputs[factor.name]?.notes || ''}
-                    onChange={e =>
+                    onChange={e => {
+                      const { sanitized } = sanitizeTextarea(e.target.value, {
+                        maxLength: 2000,
+                        allowHtml: false,
+                        allowUrls: true,
+                      });
                       handleRiskFactorChange(
                         factor.name,
                         riskFactorInputs[factor.name]?.value,
-                        e.target.value
-                      )
-                    }
+                        sanitized
+                      );
+                    }}
                     className="mt-2 w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                     rows={2}
                   />
@@ -635,6 +684,15 @@ export default function EnhancedPricingStep() {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Add any additional notes or special requirements..."
+          onChange={e => {
+            const { sanitized } = sanitizeTextarea(e.target.value, {
+              maxLength: 5000,
+              allowHtml: false,
+              allowUrls: true,
+            });
+            // Update the form value with sanitized content
+            setValue('notes', sanitized);
+          }}
         />
       </div>
     </div>

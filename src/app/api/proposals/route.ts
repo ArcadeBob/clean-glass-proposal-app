@@ -1,22 +1,30 @@
 import {
+  createCreatedResponse,
+  createDatabaseErrorResponse,
+  createInternalErrorResponse,
+  createPaginatedResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+} from '@/lib/api-response';
+import {
   CreateProposalWithItemsSchema,
   ProposalQuerySchema,
 } from '@/lib/api-schemas';
 import { auth } from '@/lib/auth';
 import {
-  createProposal,
   DatabaseError,
+  createProposal,
+  createProposalWithItems,
   getProposalsByUserId,
-  handleDatabaseError,
 } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
     // Get current user session
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse();
     }
 
     // Parse query parameters
@@ -25,13 +33,11 @@ export async function GET(request: NextRequest) {
 
     const queryResult = ProposalQuerySchema.safeParse(queryParams);
     if (!queryResult.success) {
-      return NextResponse.json(
-        {
-          message: 'Invalid query parameters',
-          errors: queryResult.error.flatten(),
-        },
-        { status: 400 }
-      );
+      const errors = queryResult.error.errors.map(error => ({
+        field: error.path.join('.'),
+        message: error.message,
+      }));
+      return createValidationErrorResponse(errors, 'Invalid query parameters');
     }
 
     const {
@@ -71,29 +77,20 @@ export async function GET(request: NextRequest) {
     const total = proposals.length;
     const paginatedProposals = proposals.slice(offset, offset + limit);
 
-    return NextResponse.json({
-      data: paginatedProposals,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
+    return createPaginatedResponse(paginatedProposals, {
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total,
     });
   } catch (error) {
     console.error('GET /api/proposals error:', error);
 
     if (error instanceof DatabaseError) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: error.statusCode }
-      );
+      return createDatabaseErrorResponse(error);
     }
 
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    return createInternalErrorResponse();
   }
 }
 
@@ -102,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Get current user session
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+      return createUnauthorizedResponse();
     }
 
     // Parse request body
@@ -110,70 +107,25 @@ export async function POST(request: NextRequest) {
     const validationResult = CreateProposalWithItemsSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          message: 'Invalid request data',
-          errors: validationResult.error.flatten(),
-        },
-        { status: 400 }
-      );
+      const errors = validationResult.error.errors.map(error => ({
+        field: error.path.join('.'),
+        message: error.message,
+      }));
+      return createValidationErrorResponse(errors, 'Invalid request data');
     }
 
     const { items, ...proposalData } = validationResult.data;
 
-    // Create proposal with items
-    const proposal = await createProposal(proposalData, session.user.id);
+    // Create proposal with items using transaction
+    const proposal =
+      items && items.length > 0
+        ? await createProposalWithItems(proposalData, items, session.user.id)
+        : await createProposal(proposalData, session.user.id);
 
-    // If items are provided, create them
-    if (items && items.length > 0) {
-      const { prisma } = await import('@/lib/db');
-
-      await prisma.proposalItem.createMany({
-        data: items.map(item => ({
-          ...item,
-          proposalId: proposal.id,
-        })),
-      });
-
-      // Fetch the proposal again with items
-      const proposalWithItems = await prisma.proposal.findUnique({
-        where: { id: proposal.id },
-        include: {
-          generalContractor: true,
-          items: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      return NextResponse.json(
-        {
-          message: 'Proposal created successfully',
-          data: proposalWithItems,
-        },
-        { status: 201 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        message: 'Proposal created successfully',
-        data: proposal,
-      },
-      { status: 201 }
-    );
+    return createCreatedResponse(proposal, 'Proposal created successfully');
   } catch (error) {
     console.error('POST /api/proposals error:', error);
 
-    const dbError = handleDatabaseError(error);
-    return NextResponse.json(
-      { message: dbError.message },
-      { status: dbError.statusCode }
-    );
+    return createDatabaseErrorResponse(error);
   }
 }

@@ -9,17 +9,30 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@auth/prisma-adapter$': '<rootDir>/src/__mocks__/@auth/prisma-adapter.ts',
+    '^next-auth$': '<rootDir>/src/__mocks__/next-auth.ts',
+    '^@/lib/auth$': '<rootDir>/src/__mocks__/auth.ts',
+    '^next/server$': '<rootDir>/src/__mocks__/next-server.ts',
   },
-  transformIgnorePatterns: ['node_modules/(?!(next-auth|@next-auth|@auth)/)'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|@next-auth|@auth|@prisma|prisma|@auth/prisma-adapter|@auth/core|@auth/nextjs|@auth/prisma-adapter|next-auth/providers|@react-pdf)/)',
+  ],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
+  },
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
     '!src/**/*.test.{js,jsx,ts,tsx}',
     '!src/**/*.spec.{js,jsx,ts,tsx}',
+    '!src/**/index.ts',
+    '!src/**/index.tsx',
   ],
   coverageThreshold: {
     global: {
@@ -28,6 +41,13 @@ const customJestConfig = {
       lines: 70,
       statements: 70,
     },
+  },
+  testTimeout: 10000,
+  maxWorkers: 1, // Reduce concurrency to avoid memory issues
+  // Force Jest to handle ES modules properly
+  preset: undefined,
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
 };
 

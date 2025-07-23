@@ -171,14 +171,160 @@ function validateRiskFactorInputs(
 
   // Validate each risk factor input
   for (const [factorName, input] of Object.entries(riskFactorInputs)) {
+    // Validate factor name
+    if (
+      !factorName ||
+      typeof factorName !== 'string' ||
+      factorName.trim().length === 0
+    ) {
+      errors.push(`Invalid risk factor name: '${factorName}'`);
+      continue;
+    }
+
+    // Validate input structure
+    if (!input || typeof input !== 'object') {
+      errors.push(
+        `Invalid input structure for risk factor '${factorName}': must be an object with 'value' property`
+      );
+      continue;
+    }
+
+    // Validate value exists
     if (input.value === undefined || input.value === null) {
       warnings.push(
         `Risk factor '${factorName}' has no value, will use default`
       );
+      continue;
+    }
+
+    // Validate value type
+    const validTypes = ['number', 'string', 'boolean'];
+    const valueType = typeof input.value;
+
+    if (!validTypes.includes(valueType)) {
+      errors.push(
+        `Invalid type for risk factor '${factorName}': ${valueType}. Expected number, string, or boolean`
+      );
+      continue;
+    }
+
+    // Validate numeric values for business logic constraints
+    if (valueType === 'number') {
+      const numValue = input.value as number;
+
+      // Check for NaN or Infinity
+      if (isNaN(numValue) || !isFinite(numValue)) {
+        errors.push(
+          `Risk factor '${factorName}' has invalid numeric value: ${numValue}`
+        );
+        continue;
+      }
+
+      // Check for negative values (most risk factors shouldn't be negative)
+      if (numValue < 0) {
+        warnings.push(
+          `Risk factor '${factorName}' has negative value: ${numValue}. This may indicate an error.`
+        );
+      }
+
+      // Check for extreme values (likely errors)
+      if (numValue > 1000) {
+        warnings.push(
+          `Risk factor '${factorName}' has unusually high value: ${numValue}. Please verify this is correct.`
+        );
+      }
+    }
+
+    // Validate string values
+    if (valueType === 'string') {
+      const strValue = input.value as string;
+
+      // Check for empty strings
+      if (strValue.trim().length === 0) {
+        warnings.push(
+          `Risk factor '${factorName}' has empty string value, will use default`
+        );
+        continue;
+      }
+
+      // Check for suspiciously long strings (potential injection)
+      if (strValue.length > 1000) {
+        errors.push(
+          `Risk factor '${factorName}' has excessively long string value (${strValue.length} characters). Maximum allowed: 1000`
+        );
+        continue;
+      }
+
+      // Check for potentially malicious content
+      const suspiciousPatterns = [
+        /<script/i,
+        /javascript:/i,
+        /on\w+\s*=/i,
+        /eval\s*\(/i,
+        /document\./i,
+        /window\./i,
+      ];
+
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(strValue)) {
+          errors.push(
+            `Risk factor '${factorName}' contains potentially malicious content: ${strValue}`
+          );
+          break;
+        }
+      }
+    }
+
+    // Validate notes field if present
+    if (input.notes !== undefined) {
+      if (typeof input.notes !== 'string') {
+        errors.push(
+          `Risk factor '${factorName}' has invalid notes type: ${typeof input.notes}. Expected string`
+        );
+        continue;
+      }
+
+      // Check for suspicious content in notes
+      if (input.notes.length > 2000) {
+        errors.push(
+          `Risk factor '${factorName}' has excessively long notes (${input.notes.length} characters). Maximum allowed: 2000`
+        );
+        continue;
+      }
+
+      const suspiciousPatterns = [
+        /<script/i,
+        /javascript:/i,
+        /on\w+\s*=/i,
+        /eval\s*\(/i,
+        /document\./i,
+        /window\./i,
+      ];
+
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(input.notes)) {
+          errors.push(
+            `Risk factor '${factorName}' notes contain potentially malicious content`
+          );
+          break;
+        }
+      }
     }
   }
 
-  return { isValid: true, errors, warnings };
+  // Check for duplicate factor names (case-insensitive)
+  const factorNames = Object.keys(riskFactorInputs).map(name =>
+    name.toLowerCase()
+  );
+  const uniqueNames = new Set(factorNames);
+
+  if (factorNames.length !== uniqueNames.size) {
+    warnings.push(
+      'Duplicate risk factor names detected (case-insensitive). This may cause unexpected behavior.'
+    );
+  }
+
+  return { isValid: errors.length === 0, errors, warnings };
 }
 
 // Enhanced calculation pipeline with proper sequencing
@@ -220,6 +366,19 @@ export async function calculateEnhancedProposalPricing(
   calculationSequence.push('risk_validation');
   const riskValidation = validateRiskFactorInputs(riskFactorInputs);
   warnings.push(...riskValidation.warnings);
+
+  // Handle validation errors
+  if (riskValidation.errors.length > 0) {
+    errors.push({
+      code: 'VALIDATION_ERROR',
+      message: 'Risk factor input validation failed',
+      details: riskValidation.errors,
+      fallbackUsed: true,
+    });
+
+    // Log validation errors for debugging
+    console.error('Risk factor validation errors:', riskValidation.errors);
+  }
 
   // Step 2: Enhanced risk assessment (if inputs are valid)
   if (
@@ -431,7 +590,12 @@ export async function calculateEnhancedProposalPricing(
       isConfidenceScored = true;
       if (confidenceAssessment) {
         uncertaintyRange = confidenceAssessment.uncertaintyRange;
-        warnings.push(...confidenceAssessment.warnings);
+        if (
+          confidenceAssessment.warnings &&
+          Array.isArray(confidenceAssessment.warnings)
+        ) {
+          warnings.push(...confidenceAssessment.warnings);
+        }
         confidence = confidenceAssessment.confidenceScore / 100;
       }
     } catch (error) {
@@ -663,17 +827,30 @@ export async function calculateEnhancedItemPricing(
 
   // Apply risk assessment if inputs provided
   if (riskFactorInputs && Object.keys(riskFactorInputs).length > 0) {
-    try {
-      const riskEngine = new RiskScoringEngine();
-      await riskEngine.initialize();
+    // Validate risk factor inputs
+    const riskValidation = validateRiskFactorInputs(riskFactorInputs);
 
-      const riskAssessment = await riskEngine.calculateRiskScore({
-        factorInputs: riskFactorInputs,
-      });
+    if (riskValidation.errors.length > 0) {
+      console.error(
+        'Risk factor validation errors in item pricing:',
+        riskValidation.errors
+      );
+      // Continue with calculation but log validation errors
+    }
 
-      contingencyAmount = baseCost * riskAssessment.contingencyRate;
-    } catch (error) {
-      console.error('Error in item risk assessment:', error);
+    if (riskValidation.isValid) {
+      try {
+        const riskEngine = new RiskScoringEngine();
+        await riskEngine.initialize();
+
+        const riskAssessment = await riskEngine.calculateRiskScore({
+          factorInputs: riskFactorInputs,
+        });
+
+        contingencyAmount = baseCost * riskAssessment.contingencyRate;
+      } catch (error) {
+        console.error('Error in item risk assessment:', error);
+      }
     }
   }
 
@@ -804,17 +981,30 @@ export async function calculateEnhancedProposalPrice(input: {
     input.riskFactorInputs &&
     Object.keys(input.riskFactorInputs).length > 0
   ) {
-    try {
-      const riskEngine = new RiskScoringEngine();
-      await riskEngine.initialize();
+    // Validate risk factor inputs
+    const riskValidation = validateRiskFactorInputs(input.riskFactorInputs);
 
-      riskAssessment = await riskEngine.calculateRiskScore({
-        factorInputs: input.riskFactorInputs,
-      });
+    if (riskValidation.errors.length > 0) {
+      console.error(
+        'Risk factor validation errors in proposal pricing:',
+        riskValidation.errors
+      );
+      // Continue with calculation but log validation errors
+    }
 
-      contingencyAmount = costWithOverhead * riskAssessment.contingencyRate;
-    } catch (error) {
-      console.error('Error in risk assessment:', error);
+    if (riskValidation.isValid) {
+      try {
+        const riskEngine = new RiskScoringEngine();
+        await riskEngine.initialize();
+
+        riskAssessment = await riskEngine.calculateRiskScore({
+          factorInputs: input.riskFactorInputs,
+        });
+
+        contingencyAmount = costWithOverhead * riskAssessment.contingencyRate;
+      } catch (error) {
+        console.error('Error in risk assessment:', error);
+      }
     }
   } else if (input.riskFactor) {
     // Legacy risk calculation

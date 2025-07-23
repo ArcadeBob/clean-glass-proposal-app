@@ -1,12 +1,18 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
+import {
+  sanitizeAddress,
+  sanitizeNumber,
+  sanitizeProjectName,
+} from '../../../lib/input-sanitization';
 import { ProposalFormData } from '../ProposalWizard';
 
 export default function ProjectDetailsStep() {
   const {
     register,
     formState: { errors, isDirty, touchedFields },
+    setValue,
   } = useFormContext<ProposalFormData>();
 
   const isFieldValid = (fieldName: keyof ProposalFormData) => {
@@ -48,6 +54,10 @@ export default function ProjectDetailsStep() {
                   : 'border-gray-300'
             }`}
             placeholder="Enter project name"
+            onChange={e => {
+              const { sanitized } = sanitizeProjectName(e.target.value);
+              setValue('projectName', sanitized);
+            }}
           />
           {errors.projectName && (
             <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -142,6 +152,10 @@ export default function ProjectDetailsStep() {
                   : 'border-gray-300'
             }`}
             placeholder="Enter full project address"
+            onChange={e => {
+              const { sanitized } = sanitizeAddress(e.target.value);
+              setValue('projectAddress', sanitized);
+            }}
           />
           {errors.projectAddress && (
             <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -198,6 +212,17 @@ export default function ProjectDetailsStep() {
               }`}
               placeholder="0"
               min="1"
+              onChange={e => {
+                const { sanitized } = sanitizeNumber(e.target.value, {
+                  min: 1,
+                  max: 999999,
+                  allowDecimals: true,
+                  allowNegative: false,
+                });
+                if (sanitized !== null) {
+                  setValue('squareFootage', sanitized);
+                }
+              }}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <span className="text-gray-500 text-sm">sq ft</span>

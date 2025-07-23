@@ -5,51 +5,57 @@ describe('Rate Limiting Integration', () => {
   let authRateLimiter: RateLimiterCore;
   let registrationRateLimiter: RateLimiterCore;
   let basicRateLimiter: RateLimiterCore; // For basic rate limiting tests without backoff
+  let authCache: Cache;
+  let registrationCache: Cache;
+  let basicCache: Cache;
 
   beforeEach(() => {
-    // Create fresh rate limiter instances for each test
-    authRateLimiter = new RateLimiterCore(
-      new Cache({ ttl: 15 * 60 * 1000, maxSize: 1000 }),
-      {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        maxRequests: 5, // 5 attempts per 15 minutes
-        exponentialBackoff: {
-          enabled: true,
-          baseDelay: 2000, // 2 seconds
-          maxDelay: 600000, // 10 minutes
-          factor: 2,
-        },
-      }
-    );
+    // Create fresh cache instances for each test
+    authCache = new Cache({ ttl: 15 * 60 * 1000, maxSize: 1000 });
+    registrationCache = new Cache({ ttl: 60 * 60 * 1000, maxSize: 500 });
+    basicCache = new Cache({ ttl: 15 * 60 * 1000, maxSize: 1000 });
 
-    registrationRateLimiter = new RateLimiterCore(
-      new Cache({ ttl: 60 * 60 * 1000, maxSize: 500 }),
-      {
-        windowMs: 60 * 60 * 1000, // 1 hour
-        maxRequests: 3, // 3 attempts per hour
-        exponentialBackoff: {
-          enabled: true,
-          baseDelay: 5000, // 5 seconds
-          maxDelay: 1800000, // 30 minutes
-          factor: 3,
-        },
-      }
-    );
+    // Create fresh rate limiter instances for each test
+    authRateLimiter = new RateLimiterCore(authCache, {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      maxRequests: 5, // 5 attempts per 15 minutes
+      exponentialBackoff: {
+        enabled: true,
+        baseDelay: 2000, // 2 seconds
+        maxDelay: 600000, // 10 minutes
+        factor: 2,
+      },
+    });
+
+    registrationRateLimiter = new RateLimiterCore(registrationCache, {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: 3, // 3 attempts per hour
+      exponentialBackoff: {
+        enabled: true,
+        baseDelay: 5000, // 5 seconds
+        maxDelay: 1800000, // 30 minutes
+        factor: 3,
+      },
+    });
 
     // Basic rate limiter without exponential backoff for testing basic rate limiting
-    basicRateLimiter = new RateLimiterCore(
-      new Cache({ ttl: 15 * 60 * 1000, maxSize: 1000 }),
-      {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        maxRequests: 5, // 5 attempts per 15 minutes
-        exponentialBackoff: {
-          enabled: false, // No backoff for basic rate limiting tests
-          baseDelay: 2000,
-          maxDelay: 600000,
-          factor: 2,
-        },
-      }
-    );
+    basicRateLimiter = new RateLimiterCore(basicCache, {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      maxRequests: 5, // 5 attempts per 15 minutes
+      exponentialBackoff: {
+        enabled: false, // No backoff for basic rate limiting tests
+        baseDelay: 2000,
+        maxDelay: 600000,
+        factor: 2,
+      },
+    });
+  });
+
+  afterEach(() => {
+    // Clean up cache instances to prevent memory leaks
+    authCache.destroy();
+    registrationCache.destroy();
+    basicCache.destroy();
   });
 
   describe('Authentication Rate Limiting', () => {
